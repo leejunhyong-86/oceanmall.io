@@ -237,13 +237,15 @@ export async function incrementViewCount(productId: string): Promise<void> {
 
   const supabase = createClerkSupabaseClient();
 
-  await supabase.rpc('increment_view_count', { product_id: productId }).catch(() => {
-    // RPC가 없으면 직접 업데이트
-    supabase
+  const { error } = await supabase.rpc('increment_view_count', { product_id: productId });
+
+  // RPC가 없으면 직접 업데이트
+  if (error) {
+    await supabase
       .from('products')
-      .update({ view_count: supabase.rpc('increment', { x: 1 }) })
+      .update({ view_count: 1 })
       .eq('id', productId);
-  });
+  }
 }
 
 /**
