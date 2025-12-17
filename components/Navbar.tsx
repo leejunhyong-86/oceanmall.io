@@ -12,9 +12,7 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
 
-  const navLinks = [
-    { href: '/products', label: '상품', icon: Package },
-  ];
+  const navLinks: { href: string; label: string; icon: typeof Package }[] = [];
 
   // 홈페이지에서는 HeroHeader를 사용하므로 Navbar를 숨김
   if (pathname === '/') {

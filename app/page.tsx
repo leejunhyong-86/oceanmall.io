@@ -1,42 +1,39 @@
 /**
  * @file app/page.tsx
- * @description 홈 페이지 - 추천 상품 및 카테고리 표시
+ * @description 홈 페이지 - 추천 상품 표시
  *
  * Server Component로 데이터를 fetch하여 초기 로딩 성능을 최적화합니다.
  * 
  * 주요 구성:
  * - HeroHeader: 중세 세계지도 배경의 히어로 헤더 (로고 + 검색창 + 사용자 메뉴)
- * - Features Section: AI 리뷰 요약, 다국어 번역, 한국어 리뷰 소개
- * - Categories Section: 카테고리 목록
+ * - CategoryNavbar: 카테고리 네비게이션 바
+ * - Today's New Section: 오늘의 신상품
+ * - Lucky Draw Section: 럭키드로우 이벤트
  * - Featured Products Section: 추천 상품 목록
  * - CTA Section: 행동 유도 섹션
  */
 
 import Link from 'next/link';
 import { getFeaturedProducts, getNewProducts } from '@/actions/products';
-import { getCategories } from '@/actions/categories';
 import { getActiveLuckyDrawEvent } from '@/actions/lucky-draw';
 import { ProductCard } from '@/components/product-card';
-import { CategoryCard } from '@/components/category-card';
 import { HeroHeader } from '@/components/header/hero-header';
 import { CategoryNavbar } from '@/components/header/category-navbar';
 import { TodaysNewSection } from '@/components/home/todays-new-section';
 import { LuckyDrawSection } from '@/components/home/lucky-draw-section';
-import { ArrowRight, Sparkles, Globe, MessageSquare } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default async function HomePage() {
   // Server Component에서 데이터 fetch (병렬 실행)
   // 환경 변수가 없을 경우 빈 배열 반환
   let featuredProducts: Awaited<ReturnType<typeof getFeaturedProducts>> = [];
   let newProducts: Awaited<ReturnType<typeof getNewProducts>> = [];
-  let categories: Awaited<ReturnType<typeof getCategories>> = [];
   let luckyDrawEvent: Awaited<ReturnType<typeof getActiveLuckyDrawEvent>> = null;
 
   try {
-    [featuredProducts, newProducts, categories, luckyDrawEvent] = await Promise.all([
+    [featuredProducts, newProducts, luckyDrawEvent] = await Promise.all([
       getFeaturedProducts(8),
       getNewProducts(4),
-      getCategories(),
       getActiveLuckyDrawEvent(),
     ]);
   } catch (error) {
@@ -60,64 +57,6 @@ export default async function HomePage() {
 
       {/* Lucky Draw Section - 럭키드로우 이벤트 */}
       <LuckyDrawSection event={luckyDrawEvent} />
-
-      {/* Features Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
-                <Sparkles className="w-6 h-6 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">AI 리뷰 요약</h3>
-              <p className="text-gray-600">
-                수백 개의 리뷰를 AI가 분석하여 긍정/부정 포인트를 명확하게 정리해드립니다.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
-                <Globe className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">다국어 번역</h3>
-              <p className="text-gray-600">
-                영어, 중국어, 일본어 리뷰를 실시간으로 한글 번역하여 언어 장벽을 제거합니다.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
-                <MessageSquare className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">한국어 리뷰</h3>
-              <p className="text-gray-600">
-                실제 구매자들의 한국어 리뷰로 더 신뢰할 수 있는 정보를 확인하세요.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Categories Section */}
-      {categories.length > 0 && (
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold">카테고리</h2>
-              <Link
-                href="/products"
-                className="text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
-              >
-                전체 보기
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {categories.slice(0, 6).map((category) => (
-                <CategoryCard key={category.id} category={category} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Featured Products Section */}
       <section className="py-16 bg-gray-50">

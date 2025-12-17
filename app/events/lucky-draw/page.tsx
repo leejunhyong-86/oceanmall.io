@@ -66,14 +66,9 @@ export default async function LuckyDrawPage() {
             홈으로 돌아가기
           </Link>
 
-          {/* 아이콘 */}
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-amber-600 rounded-full mb-6 shadow-2xl">
-            <Gift className="w-10 h-10 text-white" />
-          </div>
-
           {/* 제목 */}
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            {event?.title || '대항해 럭키드로우'}
+            {event?.title || '럭키드로우'}
           </h1>
 
           {/* 설명 */}
