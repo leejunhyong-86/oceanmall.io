@@ -164,6 +164,9 @@ export async function getFeaturedProducts(limit = 8): Promise<ProductWithCategor
  * 상품 상세 조회 (slug로)
  */
 export async function getProductBySlug(slug: string): Promise<ProductWithCategory | null> {
+  // URL에서 전달된 slug를 디코딩 (URL 인코딩 → 한글)
+  const decodedSlug = decodeURIComponent(slug);
+
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     console.error('Supabase 환경 변수가 설정되지 않았습니다.');
     return null;
@@ -171,15 +174,17 @@ export async function getProductBySlug(slug: string): Promise<ProductWithCategor
 
   const supabase = createClerkSupabaseClient();
 
+  // .maybeSingle() 사용: 결과가 없어도 에러 대신 null 반환
+  // decodedSlug를 사용하여 조회
   const { data, error } = await supabase
     .from('products')
     .select(`
       *,
       category:categories(*)
     `)
-    .eq('slug', slug)
+    .eq('slug', decodedSlug)
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error fetching product:', {
@@ -188,6 +193,11 @@ export async function getProductBySlug(slug: string): Promise<ProductWithCategor
       hint: error.hint,
       code: error.code,
     });
+    return null;
+  }
+
+  // 상품이 없으면 null 반환 (에러 없이)
+  if (!data) {
     return null;
   }
 
