@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
       { hostname: "images.unsplash.com" },
       { hostname: "images.pexels.com" },
       { hostname: "videos.pexels.com" },
+      // Kickstarter 크롤링 이미지
+      { hostname: "i.kickstarter.com" },
+      { hostname: "ksr-ugc.imgix.net" },
     ],
   },
 };

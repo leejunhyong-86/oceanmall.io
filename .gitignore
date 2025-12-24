@@ -62,3 +62,8 @@ repomix-output.xml
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# tools (크롤러 등)
+tools/*/node_modules/
+tools/*/.env
+tools/*/pnpm-lock.yaml

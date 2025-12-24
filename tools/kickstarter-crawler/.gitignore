@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# Build
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# Debug
+*.log
+screenshots/
+
+# OS
+.DS_Store
+Thumbs.db
+
