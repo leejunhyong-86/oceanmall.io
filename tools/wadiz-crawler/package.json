@@ -1,0 +1,25 @@
+{
+  "name": "wadiz-crawler",
+  "version": "1.0.0",
+  "description": "와디즈 크라우드펀딩 프로젝트 크롤러 - Supabase 연동",
+  "type": "module",
+  "scripts": {
+    "crawl": "tsx src/crawler.ts",
+    "crawl:dev": "tsx watch src/crawler.ts",
+    "test": "tsx src/test-connection.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
+    "puppeteer": "^23.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "dotenv": "^16.4.5",
+    "tsx": "^4.19.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
