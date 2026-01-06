@@ -582,6 +582,13 @@ async function extractProductDetails(page: Page, url: string): Promise<AmazonPro
                    img.getAttribute('data-lazy-src') ||
                    '';
 
+          // 이미지 요소의 실제 크기 확인
+          var imgWidth = img.naturalWidth || img.width || 0;
+          var imgHeight = img.naturalHeight || img.height || 0;
+          var computedStyle = window.getComputedStyle(img);
+          var displayWidth = parseInt(computedStyle.width) || 0;
+          var displayHeight = parseInt(computedStyle.height) || 0;
+
           // 유효한 이미지 URL인지 확인
           if (src &&
               (src.includes('media-amazon.com') || src.includes('images')) &&
@@ -589,13 +596,52 @@ async function extractProductDetails(page: Page, url: string): Promise<AmazonPro
               !src.includes('data:image') &&
               !src.includes('placeholder') &&
               src.startsWith('http')) {
-            // 고해상도 이미지 URL 우선 사용
-            var highResSrc = img.getAttribute('data-a-hires') || src;
-            // 썸네일 URL을 고해상도로 변환 시도 (Amazon URL 패턴)
-            highResSrc = highResSrc.replace(/\._[A-Z0-9_]+_\./, '.');
-            // URL 정규화 (중복 제거)
-            if (highResSrc && !allDetailImages.has(highResSrc)) {
-              allDetailImages.add(highResSrc);
+            
+            // 제품 정보와 무관한 이미지 필터링 (URL 패턴 기반)
+            var urlLower = src.toLowerCase();
+            var excludePatterns = [
+              'icon', 'logo', 'badge', 'button', 'play', 'info', 'arrow',
+              'star', 'rating', 'prime', 'sponsor', 'ad', 'banner',
+              'thumbnail', 'thumb', 'small', 'tiny', 'mini',
+              'avatar', 'profile', 'user', 'account',
+              'checkmark', 'check', 'x-mark', 'close', 'cancel',
+              'loading', 'spinner', 'loader', 'skeleton',
+              'placeholder', 'empty', 'default', 'no-image'
+            ];
+            
+            var shouldExclude = excludePatterns.some(function(pattern) {
+              return urlLower.includes(pattern);
+            });
+
+            // 이미지 크기 필터링 (너무 작은 이미지 제외)
+            // 최소 크기: 200x200 픽셀 또는 표시 크기 150x150 픽셀
+            var isTooSmall = (imgWidth > 0 && imgWidth < 200) || 
+                            (imgHeight > 0 && imgHeight < 200) ||
+                            (displayWidth > 0 && displayWidth < 150) ||
+                            (displayHeight > 0 && displayHeight < 150);
+
+            // 이미지 비율 필터링 (너무 극단적인 비율 제외 - 정사각형 또는 가로형만 허용)
+            var aspectRatio = imgWidth > 0 && imgHeight > 0 ? imgWidth / imgHeight : 1;
+            var isExtremeRatio = aspectRatio > 3 || aspectRatio < 0.33; // 3:1 또는 1:3 이상 제외
+
+            // Amazon URL에서 해상도 정보 추출 (예: ._AC_SL1500_. → 1500px)
+            var resolutionMatch = src.match(/\._AC_SL(\d+)_\./);
+            var resolution = resolutionMatch ? parseInt(resolutionMatch[1]) : null;
+            var isLowResolution = resolution !== null && resolution < 500; // 500px 미만 제외
+
+            // 필터링 통과 조건
+            if (!shouldExclude && 
+                !isTooSmall && 
+                !isExtremeRatio && 
+                !isLowResolution) {
+              // 고해상도 이미지 URL 우선 사용
+              var highResSrc = img.getAttribute('data-a-hires') || src;
+              // 썸네일 URL을 고해상도로 변환 시도 (Amazon URL 패턴)
+              highResSrc = highResSrc.replace(/\._[A-Z0-9_]+_\./, '.');
+              // URL 정규화 (중복 제거)
+              if (highResSrc && !allDetailImages.has(highResSrc)) {
+                allDetailImages.add(highResSrc);
+              }
             }
           }
         });
@@ -609,15 +655,56 @@ async function extractProductDetails(page: Page, url: string): Promise<AmazonPro
         var allAmazonImgs = document.querySelectorAll('img[src*="media-amazon.com"], img[src*="images"], img[data-a-hires*="media-amazon.com"]');
         allAmazonImgs.forEach(function(img) {
           var src = img.getAttribute('src') || img.getAttribute('data-a-hires') || '';
-          // 상품 상세 이미지로 보이는 것만 필터링 (썸네일, 아이콘 등 제외)
+          
+          // 이미지 요소의 실제 크기 확인
+          var imgWidth = img.naturalWidth || img.width || 0;
+          var imgHeight = img.naturalHeight || img.height || 0;
+          var computedStyle = window.getComputedStyle(img);
+          var displayWidth = parseInt(computedStyle.width) || 0;
+          var displayHeight = parseInt(computedStyle.height) || 0;
+
+          // 제품 정보와 무관한 이미지 필터링 (URL 패턴 기반)
+          var urlLower = src.toLowerCase();
+          var excludePatterns = [
+            'icon', 'logo', 'badge', 'button', 'play', 'info', 'arrow',
+            'star', 'rating', 'prime', 'sponsor', 'ad', 'banner',
+            'thumbnail', 'thumb', 'small', 'tiny', 'mini',
+            'avatar', 'profile', 'user', 'account',
+            'checkmark', 'check', 'x-mark', 'close', 'cancel',
+            'loading', 'spinner', 'loader', 'skeleton',
+            'placeholder', 'empty', 'default', 'no-image'
+          ];
+          
+          var shouldExclude = excludePatterns.some(function(pattern) {
+            return urlLower.includes(pattern);
+          });
+
+          // 이미지 크기 필터링
+          var isTooSmall = (imgWidth > 0 && imgWidth < 200) || 
+                          (imgHeight > 0 && imgHeight < 200) ||
+                          (displayWidth > 0 && displayWidth < 150) ||
+                          (displayHeight > 0 && displayHeight < 150);
+
+          // 이미지 비율 필터링
+          var aspectRatio = imgWidth > 0 && imgHeight > 0 ? imgWidth / imgHeight : 1;
+          var isExtremeRatio = aspectRatio > 3 || aspectRatio < 0.33;
+
+          // Amazon URL에서 해상도 정보 추출
+          var resolutionMatch = src.match(/\._AC_SL(\d+)_\./);
+          var resolution = resolutionMatch ? parseInt(resolutionMatch[1]) : null;
+          var isLowResolution = resolution !== null && resolution < 500;
+
+          // 상품 상세 이미지로 보이는 것만 필터링
           if (src &&
               src.startsWith('http') &&
               !src.includes('pixel') &&
               !src.includes('data:image') &&
               !src.includes('placeholder') &&
-              !src.includes('icon') &&
-              !src.includes('logo') &&
-              (src.includes('Product_Page') || src.includes('G/01/') || src.match(/\/[A-Z0-9]{10}\./))) {
+              (src.includes('Product_Page') || src.includes('G/01/') || src.match(/\/[A-Z0-9]{10}\./)) &&
+              !shouldExclude &&
+              !isTooSmall &&
+              !isExtremeRatio &&
+              !isLowResolution) {
             var highResSrc = img.getAttribute('data-a-hires') || src;
             highResSrc = highResSrc.replace(/\._[A-Z0-9_]+_\./, '.');
             if (!allDetailImages.has(highResSrc)) {

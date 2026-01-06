@@ -4,11 +4,13 @@
   "description": "AI 기반 리뷰 통합 해외직구 플랫폼",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "node --max-http-header-size=32768 server.js",
+    "dev:turbo": "next dev --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "node server.js",
     "lint": "next lint",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "filter-images": "tsx scripts/filter-detail-images.ts"
   },
   "dependencies": {
     "@clerk/backend": "^1.33.1",

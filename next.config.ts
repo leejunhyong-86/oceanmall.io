@@ -31,6 +31,12 @@ const nextConfig: NextConfig = {
       { hostname: "thumbs.ebaystatic.com" },
     ],
   },
+  // HTTP 431 에러 방지: 헤더 크기 제한 증가
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
 };
 
 export default nextConfig;

@@ -68,6 +68,7 @@ export interface Product {
   thumbnail_url: string | null;
   video_url: string | null;
   images: string[];
+  detail_images: string[];
   
   // 가격
   original_price: number | null;
@@ -110,6 +111,7 @@ export interface ProductInsert {
   thumbnail_url?: string | null;
   video_url?: string | null;
   images?: string[];
+  detail_images?: string[];
   original_price?: number | null;
   currency?: Currency;
   price_krw?: number | null;
@@ -133,6 +135,7 @@ export interface ProductUpdate {
   thumbnail_url?: string | null;
   video_url?: string | null;
   images?: string[];
+  detail_images?: string[];
   original_price?: number | null;
   currency?: Currency;
   price_krw?: number | null;

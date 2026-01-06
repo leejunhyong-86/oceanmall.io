@@ -8,8 +8,9 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClerkSupabaseClient } from '@/lib/supabase/server';
-import { Plus, Edit, Star, Eye } from 'lucide-react';
+import { Plus, Edit, Star, Eye, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FilterImagesButton } from '@/components/admin/filter-images-button';
 
 export default async function AdminProductsPage() {
   const { userId } = await auth();
@@ -45,12 +46,15 @@ export default async function AdminProductsPage() {
               등록된 상품 {products?.length || 0}개
             </p>
           </div>
-          <Link href="/admin/products/new">
-            <Button className="bg-purple-600 hover:bg-purple-700">
-              <Plus className="w-4 h-4 mr-2" />
-              상품 등록
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <FilterImagesButton />
+            <Link href="/admin/products/new">
+              <Button className="bg-purple-600 hover:bg-purple-700">
+                <Plus className="w-4 h-4 mr-2" />
+                상품 등록
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* 상품 테이블 */}

@@ -15,6 +15,7 @@ import { AISummaryBox } from '@/components/ai-summary-box';
 import { ExternalReviewList } from '@/components/external-review-list';
 import { UserReviewList } from '@/components/user-review-list';
 import { RelatedProducts } from '@/components/related-products';
+import { ProductDetailImages } from '@/components/product-detail-images';
 import type { Metadata } from 'next';
 
 interface ProductPageProps {
@@ -69,6 +70,17 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 totalCount={product.internal_review_count}
               />
             </section>
+
+            {/* 상품 상세 이미지 */}
+            {product.detail_images && product.detail_images.length > 0 && (
+              <section>
+                <h2 className="text-xl font-bold mb-4">상품 상세 정보</h2>
+                <ProductDetailImages
+                  images={product.detail_images}
+                  productTitle={product.title}
+                />
+              </section>
+            )}
           </div>
 
           {/* 사이드바 (1/3) */}

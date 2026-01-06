@@ -50,6 +50,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
     thumbnail_url: product?.thumbnail_url || '',
     video_url: product?.video_url || '',
     images: product?.images?.join('\n') || '',
+    detail_images: product?.detail_images?.join('\n') || '',
     original_price: product?.original_price?.toString() || '',
     currency: product?.currency || 'USD' as Currency,
     price_krw: product?.price_krw?.toString() || '',
@@ -108,6 +109,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
         thumbnail_url: formData.thumbnail_url.trim() || null,
         video_url: formData.video_url.trim() || null,
         images: formData.images.split('\n').map(s => s.trim()).filter(Boolean),
+        detail_images: formData.detail_images.split('\n').map(s => s.trim()).filter(Boolean),
         original_price: formData.original_price ? parseFloat(formData.original_price) : null,
         currency: formData.currency,
         price_krw: formData.price_krw ? parseInt(formData.price_krw) : null,
@@ -213,6 +215,19 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
               placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
               rows={3}
             />
+          </div>
+          <div>
+            <Label htmlFor="detail_images">상품 상세 이미지 URL (줄바꿈으로 구분)</Label>
+            <Textarea
+              id="detail_images"
+              value={formData.detail_images}
+              onChange={(e) => handleChange('detail_images', e.target.value)}
+              placeholder="https://example.com/detail1.jpg&#10;https://example.com/detail2.jpg"
+              rows={4}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              상품 상세 페이지 하단에 표시되는 이미지입니다. 로고, 아이콘 등은 자동으로 필터링됩니다.
+            </p>
           </div>
         </div>
       </div>
