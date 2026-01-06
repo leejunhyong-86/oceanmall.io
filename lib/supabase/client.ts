@@ -21,9 +21,9 @@ export function getPublicSupabaseClient() {
 }
 
 // 레거시 호환성을 위한 lazy export (모듈 로드 시 에러 방지)
-let _supabaseClient: ReturnType<typeof createClient> | null = null;
+let _supabaseClient: ReturnType<typeof getPublicSupabaseClient> | null = null;
 
-export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+export const supabase = new Proxy({} as ReturnType<typeof getPublicSupabaseClient>, {
   get(_target, prop) {
     if (!_supabaseClient) {
       try {
