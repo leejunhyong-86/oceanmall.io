@@ -61,7 +61,7 @@ export default async function LuckyDrawPage() {
           </h1>
 
           {/* 설명 - 중앙 정렬 (반응형) */}
-          <p className="text-xl text-amber-100 mb-8 max-w-2xl mx-auto px-4 backdrop-blur-[12px] text-center">
+          <p className="text-xl text-amber-100 mb-8 max-w-2xl mx-auto px-4 backdrop-blur-[12px] text-center shadow-[0px_4px_12px_0px_rgba(0,0,0,0.15)]">
             {event?.description || '바다 건너 온 특별한 경품! 단 200원으로 인기템을 겟 하는 방법!'}
           </p>
         </div>
