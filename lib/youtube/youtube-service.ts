@@ -64,20 +64,28 @@ export class YouTubeService {
       );
       
       if (!channelResponse.ok) {
+        // 403 에러(API 비활성화)는 조용히 처리
+        if (channelResponse.status === 403) {
+          console.warn('YouTube Data API v3가 활성화되지 않았습니다. API를 활성화하려면 Google Cloud Console을 확인하세요.');
+          return [];
+        }
         const errorData = await channelResponse.json();
-        throw new Error(`YouTube API 오류 (${channelResponse.status}): ${JSON.stringify(errorData)}`);
+        console.error(`YouTube API 오류 (${channelResponse.status}):`, errorData);
+        return [];
       }
 
       const channelData = await channelResponse.json();
       
       if (!channelData.items || channelData.items.length === 0) {
-        throw new Error('채널을 찾을 수 없습니다');
+        console.warn('YouTube 채널을 찾을 수 없습니다.');
+        return [];
       }
 
       const uploadsPlaylistId = channelData.items[0]?.contentDetails?.relatedPlaylists?.uploads;
 
       if (!uploadsPlaylistId) {
-        throw new Error('업로드 재생목록을 찾을 수 없습니다');
+        console.warn('YouTube 업로드 재생목록을 찾을 수 없습니다.');
+        return [];
       }
 
       // 2. 재생목록의 영상 목록 가져오기
@@ -86,8 +94,14 @@ export class YouTubeService {
       );
 
       if (!playlistResponse.ok) {
+        // 403 에러(API 비활성화)는 조용히 처리
+        if (playlistResponse.status === 403) {
+          console.warn('YouTube Data API v3가 활성화되지 않았습니다.');
+          return [];
+        }
         const errorData = await playlistResponse.json();
-        throw new Error(`YouTube API 오류 (${playlistResponse.status}): ${JSON.stringify(errorData)}`);
+        console.error(`YouTube API 오류 (${playlistResponse.status}):`, errorData);
+        return [];
       }
 
       const playlistData = await playlistResponse.json();
@@ -111,8 +125,14 @@ export class YouTubeService {
       );
 
       if (!videosResponse.ok) {
+        // 403 에러(API 비활성화)는 조용히 처리
+        if (videosResponse.status === 403) {
+          console.warn('YouTube Data API v3가 활성화되지 않았습니다.');
+          return [];
+        }
         const errorData = await videosResponse.json();
-        throw new Error(`YouTube API 오류 (${videosResponse.status}): ${JSON.stringify(errorData)}`);
+        console.error(`YouTube API 오류 (${videosResponse.status}):`, errorData);
+        return [];
       }
 
       const videosData = await videosResponse.json();
@@ -138,7 +158,12 @@ export class YouTubeService {
         commentCount: item.statistics.commentCount || '0',
       }));
     } catch (error) {
-      console.error('YouTube API 호출 실패:', error);
+      // 에러가 이미 처리되었거나 예상치 못한 에러인 경우
+      if (error instanceof Error && error.message.includes('YouTube API 오류')) {
+        // 이미 로깅되었으므로 추가 로깅 불필요
+      } else {
+        console.warn('YouTube API 호출 중 예상치 못한 오류:', error instanceof Error ? error.message : error);
+      }
       return [];
     }
   }
@@ -246,8 +271,14 @@ export class YouTubeService {
       );
 
       if (!searchResponse.ok) {
+        // 403 에러(API 비활성화)는 조용히 처리
+        if (searchResponse.status === 403) {
+          console.warn('YouTube Data API v3가 활성화되지 않았습니다.');
+          return [];
+        }
         const errorData = await searchResponse.json();
-        throw new Error(`YouTube API 오류 (${searchResponse.status}): ${JSON.stringify(errorData)}`);
+        console.error(`YouTube API 오류 (${searchResponse.status}):`, errorData);
+        return [];
       }
 
       const searchData = await searchResponse.json();
@@ -271,8 +302,14 @@ export class YouTubeService {
       );
 
       if (!videosResponse.ok) {
+        // 403 에러(API 비활성화)는 조용히 처리
+        if (videosResponse.status === 403) {
+          console.warn('YouTube Data API v3가 활성화되지 않았습니다.');
+          return [];
+        }
         const errorData = await videosResponse.json();
-        throw new Error(`YouTube API 오류 (${videosResponse.status}): ${JSON.stringify(errorData)}`);
+        console.error(`YouTube API 오류 (${videosResponse.status}):`, errorData);
+        return [];
       }
 
       const videosData = await videosResponse.json();

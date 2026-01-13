@@ -7,14 +7,9 @@
  * 릴스 스타일 영상 플레이어와 상품 정보를 표시합니다.
  */
 
-import { useState, useRef } from 'react';
-import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  Play, 
-  Pause, 
-  Volume2, 
-  VolumeX, 
   Star, 
   Heart, 
   ExternalLink,
@@ -24,45 +19,22 @@ import {
 import { Button } from './ui/button';
 import { toggleWishlist, isInWishlist } from '@/actions/wishlists';
 import { AddToCartButton } from './add-to-cart-button';
+import { ProductImageGallery } from './product-image-gallery';
 import type { ProductWithCategory } from '@/types';
 import { cn } from '@/lib/utils';
-import { useEffect } from 'react';
 
 interface ProductDetailProps {
   product: ProductWithCategory;
 }
 
 export function ProductDetail({ product }: ProductDetailProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isLoadingWishlist, setIsLoadingWishlist] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   // 위시리스트 상태 확인
   useEffect(() => {
     isInWishlist(product.id).then(setIsWishlisted);
   }, [product.id]);
-
-  // 영상 재생/일시정지
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  // 음소거 토글
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
 
   // 위시리스트 토글
   const handleWishlistToggle = async () => {
@@ -77,15 +49,57 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   };
 
-  // 가격 포맷팅
-  const formatPrice = (price: number | null) => {
-    if (price === null) return '가격 문의';
-    return new Intl.NumberFormat('ko-KR', {
-      style: 'currency',
-      currency: 'KRW',
-      maximumFractionDigits: 0,
-    }).format(price);
+  // 가격 포맷팅 (개선된 버전)
+  const formatPrice = () => {
+    // 1. KRW 가격이 있고 합리적인 범위 내에 있으면 우선 표시
+    if (product.price_krw !== null && product.price_krw > 0) {
+      // 비정상적으로 큰 가격 체크 (1억원 이상이면 원본 가격 표시)
+      if (product.price_krw < 100000000) {
+        return {
+          main: new Intl.NumberFormat('ko-KR', {
+            style: 'currency',
+            currency: 'KRW',
+            maximumFractionDigits: 0,
+          }).format(product.price_krw),
+          sub: null,
+        };
+      }
+    }
+
+    // 2. 원본 가격이 있으면 환산하여 표시
+    if (product.original_price !== null && product.original_price > 0 && product.currency) {
+      const exchangeRates: Record<string, number> = {
+        USD: 1400,
+        EUR: 1500,
+        JPY: 10,
+        CNY: 200,
+        KRW: 1,
+      };
+      
+      const rate = exchangeRates[product.currency] || 1;
+      const estimatedKRW = Math.round(product.original_price * rate);
+      
+      // 비정상적으로 큰 가격 체크
+      if (estimatedKRW < 100000000) {
+        return {
+          main: `${product.currency} ${product.original_price.toLocaleString()}`,
+          sub: `약 ${new Intl.NumberFormat('ko-KR', {
+            style: 'currency',
+            currency: 'KRW',
+            maximumFractionDigits: 0,
+          }).format(estimatedKRW)}`,
+        };
+      }
+    }
+
+    // 3. 둘 다 없거나 비정상적이면 가격 문의
+    return {
+      main: '가격 문의',
+      sub: '원본 사이트에서 확인하세요',
+    };
   };
+
+  const priceInfo = formatPrice();
 
   // 플랫폼 이름
   const getPlatformLabel = (platform: string) => {
@@ -114,94 +128,12 @@ export function ProductDetail({ product }: ProductDetailProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
         {/* 미디어 섹션 */}
         <div className="space-y-4">
-          {/* 메인 미디어 (영상 또는 이미지) */}
-          <div className="relative aspect-[9/16] max-h-[600px] bg-black rounded-2xl overflow-hidden mx-auto">
-            {product.video_url ? (
-              <>
-                <video
-                  ref={videoRef}
-                  src={product.video_url}
-                  className="w-full h-full object-contain"
-                  loop
-                  playsInline
-                  muted={isMuted}
-                  poster={product.thumbnail_url || undefined}
-                  onClick={togglePlay}
-                />
-                
-                {/* 영상 컨트롤 */}
-                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="bg-black/50 text-white hover:bg-black/70"
-                    onClick={togglePlay}
-                  >
-                    {isPlaying ? (
-                      <Pause className="w-5 h-5" />
-                    ) : (
-                      <Play className="w-5 h-5" />
-                    )}
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="bg-black/50 text-white hover:bg-black/70"
-                    onClick={toggleMute}
-                  >
-                    {isMuted ? (
-                      <VolumeX className="w-5 h-5" />
-                    ) : (
-                      <Volume2 className="w-5 h-5" />
-                    )}
-                  </Button>
-                </div>
-
-                {/* 재생 오버레이 */}
-                {!isPlaying && (
-                  <div
-                    className="absolute inset-0 flex items-center justify-center cursor-pointer"
-                    onClick={togglePlay}
-                  >
-                    <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                      <Play className="w-8 h-8 text-white fill-white" />
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : product.thumbnail_url ? (
-              <Image
-                src={product.thumbnail_url}
-                alt={product.title}
-                fill
-                className="object-contain"
-                priority
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                <span className="text-8xl opacity-20">📦</span>
-              </div>
-            )}
-          </div>
-
-          {/* 추가 이미지 썸네일 */}
-          {product.images && product.images.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {product.images.slice(0, 5).map((image, idx) => (
-                <div
-                  key={idx}
-                  className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100"
-                >
-                  <Image
-                    src={image}
-                    alt={`${product.title} ${idx + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          <ProductImageGallery
+            videoUrl={product.video_url}
+            thumbnailUrl={product.thumbnail_url}
+            images={product.images || []}
+            productTitle={product.title}
+          />
         </div>
 
         {/* 상품 정보 섹션 */}
@@ -256,11 +188,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
           {/* 가격 */}
           <div className="py-4 border-y">
             <div className="text-3xl font-bold text-gray-900">
-              {formatPrice(product.price_krw)}
+              {priceInfo.main}
             </div>
-            {product.original_price && product.currency !== 'KRW' && (
+            {priceInfo.sub && (
               <div className="text-gray-500 mt-1">
-                원본 가격: {product.currency} {product.original_price.toLocaleString()}
+                {priceInfo.sub}
               </div>
             )}
           </div>

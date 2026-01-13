@@ -48,11 +48,12 @@ export async function getYouTubeShorts(maxResults: number = 10): Promise<YouTube
     // const shorts = await youtubeService.searchShorts(channelId, maxResults);
     // return shorts;
   } catch (error) {
-    console.error('YouTube Shorts 로드 실패:', error);
-    
-    // 에러 상세 정보 로깅
-    if (error instanceof Error) {
-      console.error('에러 메시지:', error.message);
+    // YouTube API 오류는 이미 youtube-service에서 처리되었으므로
+    // 여기서는 조용히 빈 배열 반환
+    if (error instanceof Error && error.message.includes('YouTube API')) {
+      // 이미 로깅되었으므로 추가 로깅 불필요
+    } else {
+      console.warn('YouTube Shorts 로드 중 예상치 못한 오류:', error instanceof Error ? error.message : error);
     }
     
     return [];

@@ -39,11 +39,28 @@ export function ProductImageGallery({
   images,
   productTitle,
 }: ProductImageGalleryProps) {
-  // 모든 미디어 아이템 (비디오 + 이미지들)
+  // 영상 URL 유효성 검사 (실제 영상 URL인지 확인)
+  const isValidVideoUrl = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    // blob URL이나 data URL은 제외
+    if (url.startsWith('blob:') || url.startsWith('data:')) return false;
+    // 일반적인 영상 확장자나 영상 URL 패턴 확인
+    const videoPatterns = [
+      /\.(mp4|webm|ogg|mov|avi|m3u8)(\?|$)/i,
+      /video/i,
+      /\.m3u8/i,
+      /youtube\.com|youtu\.be|vimeo\.com/i,
+    ];
+    return videoPatterns.some(pattern => pattern.test(url));
+  };
+
+  const hasValidVideo = isValidVideoUrl(videoUrl);
+
+  // 모든 미디어 아이템 (유효한 비디오가 있으면 첫 번째로, 그 다음 이미지들)
   const allMedia = [
-    ...(videoUrl ? [{ type: 'video' as const, url: videoUrl }] : []),
+    ...(hasValidVideo && videoUrl ? [{ type: 'video' as const, url: videoUrl }] : []),
     ...(thumbnailUrl ? [{ type: 'image' as const, url: thumbnailUrl }] : []),
-    ...images.map((url) => ({ type: 'image' as const, url })),
+    ...images.filter(url => url && !url.startsWith('blob:')).map((url) => ({ type: 'image' as const, url })),
   ];
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -53,9 +70,19 @@ export function ProductImageGallery({
   // 비디오 관련 상태
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const currentMedia = allMedia[currentIndex] || { type: 'image', url: thumbnailUrl };
+  
+  // 비디오 로드 에러 처리
+  const handleVideoError = () => {
+    console.warn('비디오 로드 실패:', videoUrl);
+    setVideoError(true);
+  };
+  
+  // 비디오가 유효하지 않으면 이미지로 표시
+  const shouldShowVideo = currentMedia.type === 'video' && !videoError && hasValidVideo;
 
   // 썸네일 호버
   const handleThumbnailHover = (index: number) => {
@@ -117,7 +144,7 @@ export function ProductImageGallery({
         className="relative aspect-[9/16] max-h-[600px] bg-black rounded-2xl overflow-hidden mx-auto cursor-pointer group"
         onClick={currentMedia.type === 'image' ? handleImageClick : undefined}
       >
-        {currentMedia.type === 'video' ? (
+        {shouldShowVideo ? (
           <>
             <video
               ref={videoRef}
@@ -127,6 +154,8 @@ export function ProductImageGallery({
               playsInline
               muted={isMuted}
               poster={thumbnailUrl || undefined}
+              onError={handleVideoError}
+              onLoadedData={() => setVideoError(false)}
             />
 
             {/* 비디오 컨트롤 */}
@@ -213,7 +242,7 @@ export function ProductImageGallery({
                   : 'border-transparent hover:border-gray-300'
               )}
             >
-              {media.type === 'video' ? (
+              {media.type === 'video' && hasValidVideo ? (
                 <div className="w-full h-full flex items-center justify-center bg-black">
                   <Play className="w-6 h-6 text-white fill-white" />
                 </div>

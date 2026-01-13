@@ -56,8 +56,19 @@ export async function getInstagramFeed(limit: number = 6): Promise<InstagramPost
     );
 
     if (!response.ok) {
+      // 400 에러(Invalid OAuth access token)는 조용히 처리
+      if (response.status === 400) {
+        console.warn('Instagram API 토큰이 유효하지 않습니다. 토큰을 확인하거나 갱신해주세요.');
+        return [];
+      }
+      // 401, 403 에러도 조용히 처리
+      if (response.status === 401 || response.status === 403) {
+        console.warn('Instagram API 인증 실패. 토큰을 확인해주세요.');
+        return [];
+      }
       const errorText = await response.text();
-      throw new Error(`Instagram API 오류 (${response.status}): ${errorText}`);
+      console.error(`Instagram API 오류 (${response.status}):`, errorText);
+      return [];
     }
 
     const data = await response.json();
@@ -70,11 +81,12 @@ export async function getInstagramFeed(limit: number = 6): Promise<InstagramPost
 
     return data.data as InstagramPost[];
   } catch (error) {
-    console.error('Instagram 피드 로드 실패:', error);
-    
-    // 에러 상세 정보 로깅
-    if (error instanceof Error) {
-      console.error('에러 메시지:', error.message);
+    // Instagram API 오류는 이미 처리되었으므로
+    // 여기서는 조용히 빈 배열 반환
+    if (error instanceof Error && error.message.includes('Instagram API')) {
+      // 이미 로깅되었으므로 추가 로깅 불필요
+    } else {
+      console.warn('Instagram 피드 로드 중 예상치 못한 오류:', error instanceof Error ? error.message : error);
     }
     
     return [];
@@ -103,7 +115,13 @@ export async function getInstagramAccountInfo() {
     );
 
     if (!response.ok) {
-      throw new Error(`Instagram API 오류: ${response.status}`);
+      // 400, 401, 403 에러는 조용히 처리
+      if (response.status === 400 || response.status === 401 || response.status === 403) {
+        console.warn('Instagram API 인증 실패.');
+        return null;
+      }
+      console.error(`Instagram API 오류: ${response.status}`);
+      return null;
     }
 
     return await response.json();

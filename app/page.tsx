@@ -38,17 +38,25 @@ export default async function HomePage() {
   let instagramPosts: Awaited<ReturnType<typeof getInstagramFeed>> = [];
   let youtubeShorts: Awaited<ReturnType<typeof getYouTubeShorts>> = [];
 
+  // 각 데이터를 개별적으로 로드하여 하나가 실패해도 다른 것들은 성공하도록 처리
   try {
-    [featuredProducts, newProducts, luckyDrawEvent, instagramPosts, youtubeShorts] = await Promise.all([
+    const results = await Promise.allSettled([
       getFeaturedProducts(8),
       getNewProducts(4),
       getActiveLuckyDrawEvent(),
       getInstagramFeed(6), // Instagram 최신 6개 게시물
       getYouTubeShorts(12), // YouTube Shorts 최신 12개
     ]);
+
+    // 각 결과를 처리 (실패한 경우 기본값 사용)
+    featuredProducts = results[0].status === 'fulfilled' ? results[0].value : [];
+    newProducts = results[1].status === 'fulfilled' ? results[1].value : [];
+    luckyDrawEvent = results[2].status === 'fulfilled' ? results[2].value : null;
+    instagramPosts = results[3].status === 'fulfilled' ? results[3].value : [];
+    youtubeShorts = results[4].status === 'fulfilled' ? results[4].value : [];
   } catch (error) {
-    console.error('데이터 로드 실패:', error);
-    // 환경 변수 미설정 등의 이유로 실패해도 페이지는 표시
+    // 예상치 못한 에러만 로깅
+    console.warn('데이터 로드 중 예상치 못한 오류:', error);
   }
 
   return (
