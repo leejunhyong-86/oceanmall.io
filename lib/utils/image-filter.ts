@@ -37,6 +37,29 @@ export function isValidProductDetailImage(url: string): boolean {
     return false;
   }
 
+  // AliExpress 이미지 크기 필터링
+  // 패턴: tps-128-128, tps-134-32, 21x21 등
+  const aliSizeMatch = url.match(/tps-(\d+)-(\d+)/);
+  if (aliSizeMatch) {
+    const width = parseInt(aliSizeMatch[1]);
+    const height = parseInt(aliSizeMatch[2]);
+    // 200px 미만은 제외 (로고, 아이콘 등)
+    if (width < 200 || height < 200) {
+      return false;
+    }
+  }
+
+  // URL에 크기가 명시된 경우 (예: 128-128, 21x21 등)
+  const sizeInUrlMatch = url.match(/[\/\-_](\d+)[-x](\d+)/);
+  if (sizeInUrlMatch) {
+    const width = parseInt(sizeInUrlMatch[1]);
+    const height = parseInt(sizeInUrlMatch[2]);
+    // 200px 미만은 제외
+    if (width < 200 || height < 200) {
+      return false;
+    }
+  }
+
   // Amazon URL에서 해상도 정보 추출
   const resolutionMatch = url.match(/\._AC_SL(\d+)_\./);
   if (resolutionMatch) {

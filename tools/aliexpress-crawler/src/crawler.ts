@@ -420,15 +420,18 @@ class AliExpressCrawler {
         galleryImages.forEach((img: any) => {
           let src = img.getAttribute('src') || img.getAttribute('data-src');
           if (src && src.includes('alicdn.com')) {
-            // 작은 크기 패턴 제외 (다양한 형식)
-            // /48x48., -48-48., _48x48, 등
-            if (src.match(/[\/_-]\d{1,3}[\-x]\d{1,3}[\._]/)) {
-              return;
-            }
-
-            // tps (Taobao Picture Service) 작은 크기 제외
-            if (src.match(/tps-\d{1,3}-\d{1,3}/)) {
-              return; // tps-128-128, tps-134-32 등
+            // 작은 크기가 URL에 명시된 경우 제외 (더 엄격한 기준)
+            // tps-128-128, 21x21, 134-32 등
+            const sizeMatch = src.match(/tps-(\d+)-(\d+)|[\/\-_](\d+)[-x](\d+)/);
+            if (sizeMatch) {
+              const width = parseInt(sizeMatch[1] || sizeMatch[3] || '0');
+              const height = parseInt(sizeMatch[2] || sizeMatch[4] || '0');
+              
+              // 200px 미만은 제외 (로고, 아이콘 등)
+              // 400px 이상이 이상적이지만, AliExpress 특성상 200px 기준 적용
+              if (width < 200 || height < 200) {
+                return;
+              }
             }
 
             // URL 정리 - 쿼리 파라미터 제거
@@ -461,14 +464,16 @@ class AliExpressCrawler {
           descImages.forEach((img: any) => {
             let src = img.getAttribute('src') || img.getAttribute('data-src');
             if (src && src.includes('alicdn.com')) {
-              // 작은 크기 패턴 제외
-              if (src.match(/[\/_-]\d{1,3}[\-x]\d{1,3}[\._]/)) {
-                return;
-              }
-
-              // tps 작은 크기 제외
-              if (src.match(/tps-\d{1,3}-\d{1,3}/)) {
-                return;
+              // 작은 크기가 URL에 명시된 경우 제외 (더 엄격한 기준)
+              const sizeMatch = src.match(/tps-(\d+)-(\d+)|[\/\-_](\d+)[-x](\d+)/);
+              if (sizeMatch) {
+                const width = parseInt(sizeMatch[1] || sizeMatch[3] || '0');
+                const height = parseInt(sizeMatch[2] || sizeMatch[4] || '0');
+                
+                // 400px 미만은 제외 (로고, 아이콘 등)
+                if (width < 400 || height < 400) {
+                  return;
+                }
               }
 
               let cleanSrc = src.split('?')[0];
