@@ -1,0 +1,26 @@
+{
+  "name": "aliexpress-crawler",
+  "version": "1.0.0",
+  "description": "AliExpress product crawler for shopping mall",
+  "type": "module",
+  "scripts": {
+    "crawl": "tsx src/crawler.ts",
+    "test": "tsx src/test-connection.ts",
+    "dev": "tsx watch src/crawler.ts"
+  },
+  "keywords": [
+    "aliexpress",
+    "crawler",
+    "scraper"
+  ],
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1",
+    "puppeteer": "^21.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}
