@@ -363,6 +363,9 @@ class AliExpressCrawler {
         return null;
       }
 
+      // 추가 이미지 및 상세 이미지 수집
+      const images = await this.extractImages();
+      
       const product: AliExpressProduct = {
         title: data.title,
         slug: slugify(data.title) + '-' + Date.now(),
@@ -373,8 +376,8 @@ class AliExpressCrawler {
         discount: data.originalPrice && data.price ? 
           Math.round(((data.originalPrice - data.price) / data.originalPrice) * 100) : null,
         thumbnailUrl: data.thumbnailUrl,
-        images: [],
-        detailImages: [],
+        images: images.productImages,
+        detailImages: images.detailImages,
         rating: data.rating,
         reviewCount: data.reviewCount,
         orders: data.orders,
@@ -388,11 +391,104 @@ class AliExpressCrawler {
         crawledAt: new Date().toISOString(),
       };
 
+      console.log(`      📷 ${images.productImages.length}개의 상품 이미지 수집`);
+      console.log(`      🖼️  ${images.detailImages.length}개의 상세 이미지 수집`);
+
       return product;
 
     } catch (error) {
       console.error(`   ❌ 데이터 추출 실패:`, error);
       return null;
+    }
+  }
+
+  // ============================================
+  // 이미지 추출
+  // ============================================
+
+  private async extractImages(): Promise<{ productImages: string[], detailImages: string[] }> {
+    if (!this.page) return { productImages: [], detailImages: [] };
+
+    try {
+      const imageData = await this.page.evaluate(() => {
+        const productImages: string[] = [];
+        const detailImages: string[] = [];
+        const seenUrls = new Set<string>();
+
+        // 상품 갤러리 이미지 수집
+        const galleryImages = document.querySelectorAll('img[src*="alicdn"]');
+        galleryImages.forEach((img: any) => {
+          let src = img.getAttribute('src') || img.getAttribute('data-src');
+          if (src && src.includes('alicdn.com')) {
+            // 작은 크기 패턴 제외 (다양한 형식)
+            // /48x48., -48-48., _48x48, 등
+            if (src.match(/[\/_-]\d{1,3}[\-x]\d{1,3}[\._]/)) {
+              return;
+            }
+
+            // tps (Taobao Picture Service) 작은 크기 제외
+            if (src.match(/tps-\d{1,3}-\d{1,3}/)) {
+              return; // tps-128-128, tps-134-32 등
+            }
+
+            // URL 정리 - 쿼리 파라미터 제거
+            let cleanSrc = src.split('?')[0];
+            
+            // 이미 본 URL이면 skip
+            if (seenUrls.has(cleanSrc)) return;
+            seenUrls.add(cleanSrc);
+
+            // 중복 체크
+            if (productImages.length < 10) {
+              productImages.push(cleanSrc);
+            }
+          }
+        });
+
+        // 상세 설명 영역의 이미지 수집
+        const descriptionSelectors = [
+          '.product-description img',
+          '[class*="description"] img',
+          '[class*="detail"] img',
+          '[class*="Description"] img',
+          '[class*="Detail"] img',
+          '[id*="detail"] img',
+          '[id*="description"] img'
+        ];
+
+        descriptionSelectors.forEach(selector => {
+          const descImages = document.querySelectorAll(selector);
+          descImages.forEach((img: any) => {
+            let src = img.getAttribute('src') || img.getAttribute('data-src');
+            if (src && src.includes('alicdn.com')) {
+              // 작은 크기 패턴 제외
+              if (src.match(/[\/_-]\d{1,3}[\-x]\d{1,3}[\._]/)) {
+                return;
+              }
+
+              // tps 작은 크기 제외
+              if (src.match(/tps-\d{1,3}-\d{1,3}/)) {
+                return;
+              }
+
+              let cleanSrc = src.split('?')[0];
+              
+              if (!seenUrls.has(cleanSrc) && detailImages.length < 20) {
+                seenUrls.add(cleanSrc);
+                detailImages.push(cleanSrc);
+              }
+            }
+          });
+        });
+
+        return { productImages, detailImages };
+      });
+
+      return imageData;
+
+    } catch (error) {
+      console.error(`   ⚠️  이미지 수집 실패:`, error);
+      return { productImages: [], detailImages: [] };
     }
   }
 
@@ -406,47 +502,96 @@ class AliExpressCrawler {
     const reviews: Review[] = [];
 
     try {
-      // 페이지에서 리뷰 추출
+      // 리뷰 섹션으로 스크롤
+      await this.page.evaluate(() => {
+        const reviewSection = document.querySelector('[class*="review"], [class*="feedback"], [class*="comment"]');
+        if (reviewSection) {
+          reviewSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+
+      await delay(2000);
+
+      // 페이지에서 리뷰 추출 - 더 넓은 범위의 셀렉터 사용
       const reviewData = await this.page.evaluate((max) => {
         const results: any[] = [];
         
         // AliExpress 리뷰 셀렉터 (여러 버전 시도)
-        const reviewElements = document.querySelectorAll(
-          '[class*="feedback-item"], [class*="review-item"], [class*="Review--item"]'
-        );
+        const selectors = [
+          '[class*="feedback-item"]',
+          '[class*="review-item"]',
+          '[class*="Review--item"]',
+          '[class*="comment-item"]',
+          '[class*="feedback-list"] > div',
+          '[class*="review-list"] > div',
+          '[data-spm*="review"]'
+        ];
+
+        let reviewElements: Element[] = [];
+        for (const selector of selectors) {
+          const elements = Array.from(document.querySelectorAll(selector));
+          if (elements.length > reviewElements.length) {
+            reviewElements = elements;
+          }
+        }
+
+        console.log(`Found ${reviewElements.length} review elements`);
 
         for (let i = 0; i < Math.min(reviewElements.length, max); i++) {
           const element = reviewElements[i];
           
-          // 리뷰 내용
-          const contentEl = element.querySelector('[class*="feedback-content"], [class*="review-content"], [class*="comment"]');
-          const content = contentEl?.textContent?.trim() || '';
+          // 리뷰 내용 - 더 많은 셀렉터 시도
+          let content = '';
+          const contentSelectors = [
+            '[class*="feedback-content"]',
+            '[class*="review-content"]',
+            '[class*="comment-content"]',
+            '[class*="buyer-feedback"]',
+            '[class*="review-text"]',
+            'p',
+            'span'
+          ];
+
+          for (const sel of contentSelectors) {
+            const contentEl = element.querySelector(sel);
+            if (contentEl && contentEl.textContent && contentEl.textContent.trim().length > 10) {
+              content = contentEl.textContent.trim();
+              break;
+            }
+          }
 
           // 리뷰어 이름
-          const nameEl = element.querySelector('[class*="user-name"], [class*="reviewer-name"], [class*="name"]');
-          const reviewerName = nameEl?.textContent?.trim() || null;
+          const nameSelectors = ['[class*="user-name"]', '[class*="reviewer-name"]', '[class*="buyer-name"]', '[class*="name"]'];
+          let reviewerName: string | null = null;
+          for (const sel of nameSelectors) {
+            const nameEl = element.querySelector(sel);
+            if (nameEl && nameEl.textContent) {
+              reviewerName = nameEl.textContent.trim();
+              break;
+            }
+          }
 
           // 국가
-          const countryEl = element.querySelector('[class*="country"], [class*="location"]');
+          const countryEl = element.querySelector('[class*="country"], [class*="location"], [class*="region"]');
           const country = countryEl?.textContent?.trim() || null;
 
           // 평점
           let rating: number | null = null;
-          const ratingEl = element.querySelector('[class*="star"], [class*="rating"]');
+          const ratingEl = element.querySelector('[class*="star"], [class*="rating"], [class*="rate"]');
           if (ratingEl) {
-            const ratingText = ratingEl.textContent || ratingEl.getAttribute('aria-label') || '';
+            const ratingText = ratingEl.textContent || ratingEl.getAttribute('aria-label') || ratingEl.className || '';
             const match = ratingText.match(/([0-5])/);
             if (match) rating = parseInt(match[1]);
           }
 
           // 날짜
-          const dateEl = element.querySelector('[class*="time"], [class*="date"], time');
+          const dateEl = element.querySelector('[class*="time"], [class*="date"], time, [class*="post-time"]');
           const dateStr = dateEl?.textContent?.trim() || dateEl?.getAttribute('datetime') || null;
 
           if (content && content.length > 5) {
             results.push({
               content,
-              reviewerName,
+              reviewerName: reviewerName || 'Anonymous',
               country,
               rating,
               dateStr,
@@ -470,7 +615,11 @@ class AliExpressCrawler {
         });
       }
 
-      console.log(`   ✅ ${reviews.length}개의 리뷰 수집 완료`);
+      if (reviews.length > 0) {
+        console.log(`   ✅ ${reviews.length}개의 리뷰 수집 완료`);
+      } else {
+        console.log(`   ℹ️  리뷰를 찾을 수 없습니다 (페이지에 리뷰가 없거나 동적 로딩)`);
+      }
 
     } catch (error) {
       console.error(`   ⚠️  리뷰 수집 실패:`, error);
@@ -516,6 +665,9 @@ class AliExpressCrawler {
 async function saveToSupabase(product: AliExpressProduct): Promise<boolean> {
   const priceKrw = Math.round(product.price * USD_TO_KRW);
 
+  // 상품 이미지와 상세 이미지를 합쳐서 detail_images에 저장
+  const allImages = [...product.images, ...product.detailImages];
+
   const productData: ProductInsert = {
     title: product.title,
     slug: product.slug,
@@ -536,7 +688,7 @@ async function saveToSupabase(product: AliExpressProduct): Promise<boolean> {
     ].filter(Boolean),
     is_featured: (product.orders || 0) > 1000,
     is_active: true,
-    detail_images: product.detailImages,
+    detail_images: allImages,
   };
 
   const { data, error } = await supabase
