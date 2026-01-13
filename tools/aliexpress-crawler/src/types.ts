@@ -95,6 +95,5 @@ export interface ProductInsert {
   tags?: string[];
   is_featured?: boolean;
   is_active?: boolean;
-  discount_percentage?: number | null;
   detail_images?: string[];
 }

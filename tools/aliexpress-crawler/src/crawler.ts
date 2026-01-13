@@ -260,76 +260,76 @@ class AliExpressCrawler {
 
     try {
       const data = await this.page.evaluate(() => {
-        // 텍스트 추출 헬퍼
-        function getText(selector: string): string {
-          const el = document.querySelector(selector);
-          return el?.textContent?.trim() || '';
-        }
-
-        // 속성 추출 헬퍼
-        function getAttr(selector: string, attr: string): string {
-          const el = document.querySelector(selector);
-          return el?.getAttribute(attr) || '';
-        }
-
-        // Meta 태그 추출
-        function getMeta(property: string): string {
-          const el = document.querySelector(`meta[property="${property}"], meta[name="${property}"]`);
-          return el?.getAttribute('content') || '';
-        }
-
         // 제목 추출 (여러 셀렉터 시도)
-        let title = getMeta('og:title') || 
-                   getText('h1') ||
-                   getText('[class*="Product--title"]') ||
-                   getText('[class*="product-title"]') ||
-                   getText('[data-pl="product-title"]') ||
-                   document.title.split('-')[0]?.trim() || '';
+        let title = '';
+        const ogTitle = document.querySelector('meta[property="og:title"]');
+        if (ogTitle) {
+          title = ogTitle.getAttribute('content') || '';
+        }
+        if (!title) {
+          const h1 = document.querySelector('h1');
+          if (h1) title = h1.textContent?.trim() || '';
+        }
+        if (!title) {
+          title = document.title.split('-')[0]?.trim() || '';
+        }
 
         // 가격 추출
         let price = 0;
         let originalPrice: number | null = null;
         
-        const priceText = getText('[class*="Product--price"]') ||
-                         getText('[class*="product-price"]') ||
-                         getText('[data-spm-anchor-id*="price"]') ||
-                         getText('[class*="Price"]');
+        const bodyText = document.body.textContent || '';
         
-        const priceMatch = priceText.match(/[\d,]+\.?\d*/);
-        if (priceMatch) {
-          price = parseFloat(priceMatch[0].replace(/,/g, ''));
+        // 한국 원화 가격 찾기
+        const krwMatch = bodyText.match(/₩\s*([\d,]+)/);
+        if (krwMatch) {
+          const krwPrice = parseInt(krwMatch[1].replace(/,/g, ''));
+          price = krwPrice / 1400; // KRW -> USD 변환
+        }
+        
+        // USD 가격 찾기
+        if (price === 0) {
+          const usdMatch = bodyText.match(/\$\s*([\d,]+\.?\d*)/);
+          if (usdMatch) {
+            price = parseFloat(usdMatch[1].replace(/,/g, ''));
+          }
         }
 
         // 썸네일 이미지
-        const thumbnailUrl = getMeta('og:image') ||
-                            getAttr('img[class*="magnifier-image"]', 'src') ||
-                            getAttr('img[class*="ImageGallery"]', 'src') ||
-                            getAttr('img[class*="Product--img"]', 'src') ||
-                            '';
+        let thumbnailUrl = '';
+        const ogImage = document.querySelector('meta[property="og:image"]');
+        if (ogImage) {
+          thumbnailUrl = ogImage.getAttribute('content') || '';
+        }
+        if (!thumbnailUrl) {
+          const firstImg = document.querySelector('img[src*="alicdn"]');
+          if (firstImg) {
+            thumbnailUrl = firstImg.getAttribute('src') || '';
+          }
+        }
 
         // 평점
         let rating: number | null = null;
-        const ratingText = getText('[class*="rating"]') ||
-                          getText('[class*="Rating"]') ||
-                          getText('[class*="star"]');
-        const ratingMatch = ratingText.match(/([0-5]\.?\d*)/);
-        if (ratingMatch) {
+        const ratingMatch = bodyText.match(/([0-5]\.?\d*)\s*별/);
+        if (!ratingMatch) {
+          const ratingMatch2 = bodyText.match(/([0-5]\.?\d*)\s*(stars?|평점)/i);
+          if (ratingMatch2) {
+            rating = parseFloat(ratingMatch2[1]);
+          }
+        } else {
           rating = parseFloat(ratingMatch[1]);
         }
 
         // 리뷰 수
         let reviewCount = 0;
-        const reviewText = getText('[class*="review"]') ||
-                          getText('[class*="Review"]') ||
-                          document.body.innerText;
-        const reviewMatch = reviewText.match(/(\d+[\d,]*)\s*(reviews?|Reviews?)/i);
+        const reviewMatch = bodyText.match(/(\d+[\d,]*)\s*(개의\s*)?리뷰/i);
         if (reviewMatch) {
           reviewCount = parseInt(reviewMatch[1].replace(/,/g, ''));
         }
 
         // 주문 수
         let orders: number | null = null;
-        const ordersMatch = document.body.innerText.match(/(\d+[\d,]*)\s*(orders?|sold)/i);
+        const ordersMatch = bodyText.match(/(\d+[\d,]*)\s*(명|개)?\s*(구매|판매|주문)/i);
         if (ordersMatch) {
           orders = parseInt(ordersMatch[1].replace(/,/g, ''));
         }
@@ -339,10 +339,11 @@ class AliExpressCrawler {
         const itemId = urlMatch ? urlMatch[1] : '';
 
         // 설명 추출
-        const description = getMeta('og:description') ||
-                           getText('[class*="description"]') ||
-                           getText('[class*="Description"]') ||
-                           '';
+        let description = '';
+        const ogDesc = document.querySelector('meta[property="og:description"]');
+        if (ogDesc) {
+          description = ogDesc.getAttribute('content') || '';
+        }
 
         return {
           title,
@@ -535,7 +536,6 @@ async function saveToSupabase(product: AliExpressProduct): Promise<boolean> {
     ].filter(Boolean),
     is_featured: (product.orders || 0) > 1000,
     is_active: true,
-    discount_percentage: product.discount,
     detail_images: product.detailImages,
   };
 
