@@ -29,6 +29,16 @@ const nextConfig: NextConfig = {
       // eBay 크롤링 이미지
       { hostname: "i.ebayimg.com" },
       { hostname: "thumbs.ebaystatic.com" },
+      // AliExpress 크롤링 이미지
+      { hostname: "ae01.alicdn.com" },
+      { hostname: "ae02.alicdn.com" },
+      { hostname: "ae03.alicdn.com" },
+      { hostname: "ae04.alicdn.com" },
+      { hostname: "img.alicdn.com" },
+      { hostname: "gd1.alicdn.com" },
+      { hostname: "gd2.alicdn.com" },
+      { hostname: "gd3.alicdn.com" },
+      { hostname: "gd4.alicdn.com" },
     ],
   },
   // HTTP 431 에러 방지: 헤더 크기 제한 증가
