@@ -70,7 +70,27 @@ const CONFIG: CrawlConfig = {
 };
 ```
 
+### 리뷰 크롤링 설정
+
+환경변수 또는 코드에서 설정:
+
+| 옵션 | 기본값 | 설명 |
+|------|--------|------|
+| `CRAWL_REVIEWS` | `true` | 리뷰(후기) 수집 여부 |
+| `MAX_REVIEWS` | `10` | 수집할 최대 리뷰 개수 |
+
+**사용 예시:**
+```bash
+# 리뷰 크롤링 비활성화
+CRAWL_REVIEWS=false pnpm crawl
+
+# 최대 20개 리뷰 수집
+MAX_REVIEWS=20 pnpm crawl
+```
+
 ## 📊 수집 데이터
+
+### 상품 데이터 (`products` 테이블)
 
 | 필드 | 설명 |
 |------|------|
@@ -83,6 +103,18 @@ const CONFIG: CrawlConfig = {
 | `source_platform` | 'wadiz' |
 | `source_url` | 원본 프로젝트 URL |
 | `tags` | 카테고리, 달성률, 서포터 수 등 |
+
+### 리뷰 데이터 (`external_reviews` 테이블)
+
+| 수집 항목 | 필드명 | 설명 |
+|----------|--------|------|
+| 리뷰 내용 | `content` | 서포터 후기 |
+| 작성자 이름 | `reviewer_name` | 후기 작성자 |
+| 평점 | `rating` | 별점 (1-5) |
+| 작성일 | `review_date` | 후기 작성 날짜 |
+| 플랫폼 | `source_platform` | 'wadiz' |
+| 언어 | `source_language` | 'ko' (한국어) |
+| 검증된 구매 | `is_verified_purchase` | `true` (서포터만 작성 가능) |
 
 ## 🔍 특정 프로젝트 크롤링
 

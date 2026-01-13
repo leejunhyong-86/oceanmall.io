@@ -71,6 +71,10 @@ const CONFIG: CrawlConfig = {
   maxProjects: parseInt(process.env.MAX_PRODUCTS || '10'),
 };
 
+// 리뷰 크롤링 설정
+const CRAWL_REVIEWS = process.env.CRAWL_REVIEWS !== 'false';
+const MAX_REVIEWS = parseInt(process.env.MAX_REVIEWS || '10');
+
 // 카테고리 ID 매핑
 const CATEGORY_IDS: Record<WadizCategory, string> = {
   tech: '1',       // 테크·가전
@@ -257,6 +261,109 @@ class WadizCrawler {
 
     console.log(`📦 ${projectUrls.length}개 프로젝트 URL 발견\n`);
     return projectUrls.slice(0, CONFIG.maxProjects);
+  }
+
+  // ============================================
+  // Wadiz 리뷰 수집
+  // ============================================
+
+  private async extractWadizReviews(url: string, maxReviews: number = 10): Promise<Review[]> {
+    if (!this.page) return [];
+
+    const reviews: Review[] = [];
+    
+    try {
+      console.log(`   🔍 리뷰 수집 시작 (최대 ${maxReviews}개)...`);
+      
+      // 현재 페이지에서 리뷰 섹션으로 스크롤
+      await this.page.evaluate(`
+        (function() {
+          var reviewSection = document.querySelector('[class*="review"], [class*="Comment"], .후기, .리뷰');
+          if (reviewSection) {
+            reviewSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        })()
+      `);
+
+      await delay(2000);
+
+      // 페이지에서 리뷰 추출
+      const reviewData = await this.page.evaluate(`
+        (function() {
+          var reviews = [];
+          
+          // 와디즈 리뷰/후기 컨테이너 찾기
+          var reviewElements = document.querySelectorAll('[class*="Comment"], [class*="Review"], .comment-item, .review-item');
+          
+          if (reviewElements.length === 0) {
+            // 대체 선택자 시도
+            reviewElements = document.querySelectorAll('.후기, .리뷰, [class*="후기"], [class*="리뷰"]');
+          }
+          
+          for (var i = 0; i < reviewElements.length && i < ${maxReviews}; i++) {
+            var element = reviewElements[i];
+            
+            // 리뷰 내용
+            var contentEl = element.querySelector('[class*="content"], [class*="text"], p, .후기내용, .리뷰내용') || element;
+            var content = contentEl.textContent ? contentEl.textContent.trim() : '';
+            
+            // 작성자 이름
+            var authorEl = element.querySelector('[class*="name"], [class*="author"], .작성자, .이름, strong');
+            var author = authorEl ? authorEl.textContent.trim() : null;
+            
+            // 평점
+            var ratingEl = element.querySelector('[class*="rating"], [class*="star"], .평점');
+            var rating = null;
+            if (ratingEl) {
+              var ratingText = ratingEl.textContent || ratingEl.getAttribute('data-rating') || '';
+              var ratingMatch = ratingText.match(/([0-5])/);
+              if (ratingMatch) {
+                rating = parseInt(ratingMatch[1]);
+              }
+            }
+            
+            // 작성일
+            var dateEl = element.querySelector('time, .date, [datetime], .작성일');
+            var dateStr = dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : null;
+            
+            if (content && content.length > 5) {
+              reviews.push({
+                content: content,
+                reviewerName: author,
+                reviewerCountry: '대한민국',
+                rating: rating,
+                reviewDate: dateStr,
+                helpfulCount: 0,
+                isVerifiedPurchase: true, // 와디즈 후기는 서포터만 작성 가능
+                sourceReviewId: null,
+              });
+            }
+          }
+          
+          return reviews;
+        })()
+      `);
+
+      for (const review of reviewData) {
+        reviews.push({
+          content: review.content,
+          reviewerName: review.reviewerName,
+          reviewerCountry: review.reviewerCountry,
+          rating: review.rating,
+          reviewDate: review.reviewDate ? new Date(review.reviewDate) : null,
+          helpfulCount: review.helpfulCount,
+          isVerifiedPurchase: review.isVerifiedPurchase,
+          sourceReviewId: review.sourceReviewId,
+        });
+      }
+
+      console.log(`   ✅ ${reviews.length}개의 리뷰 수집 완료`);
+
+    } catch (error) {
+      console.error(`   ⚠️ 리뷰 수집 실패:`, error);
+    }
+
+    return reviews;
   }
 
   // ============================================
@@ -555,6 +662,11 @@ class WadizCrawler {
         crawledAt: new Date().toISOString(),
       };
 
+      // 리뷰 수집
+      if (CRAWL_REVIEWS) {
+        project.reviews = await this.extractWadizReviews(url, MAX_REVIEWS);
+      }
+
       console.log(`   ✅ "${project.title}"`);
       console.log(`      💰 ${project.totalAmount.toLocaleString()}원 (${project.achievementRate}%)`);
       console.log(`      👥 ${project.supporterCount.toLocaleString()}명 서포터`);
@@ -563,6 +675,9 @@ class WadizCrawler {
       }
       if (project.videoUrl) {
         console.log(`      🎬 영상 URL: ${project.videoUrl.substring(0, 50)}...`);
+      }
+      if (project.reviews && project.reviews.length > 0) {
+        console.log(`      💬 리뷰: ${project.reviews.length}개 수집됨`);
       }
       console.log('');
 
@@ -653,7 +768,36 @@ async function saveToSupabase(project: WadizProject): Promise<string | null> {
     return null;
   }
 
-  console.log(`   💾 저장 완료: ${data.id}\n`);
+  console.log(`   💾 저장 완료: ${data.id}`);
+
+  // 리뷰 저장
+  if (project.reviews && project.reviews.length > 0) {
+    const reviewInserts = project.reviews.map(review => ({
+      product_id: data.id,
+      content: review.content,
+      reviewer_name: review.reviewerName,
+      reviewer_country: review.reviewerCountry,
+      rating: review.rating,
+      source_language: 'ko',
+      source_platform: 'wadiz',
+      source_review_id: review.sourceReviewId,
+      review_date: review.reviewDate?.toISOString().split('T')[0] || null,
+      helpful_count: review.helpfulCount,
+      is_verified_purchase: review.isVerifiedPurchase,
+    }));
+
+    const { error: reviewsError } = await supabase
+      .from('external_reviews')
+      .insert(reviewInserts);
+
+    if (reviewsError) {
+      console.error('   ⚠️ 리뷰 저장 실패:', reviewsError.message);
+    } else {
+      console.log(`   ✅ ${project.reviews.length}개의 리뷰 저장 완료`);
+    }
+  }
+
+  console.log('');
   return data.id;
 }
 

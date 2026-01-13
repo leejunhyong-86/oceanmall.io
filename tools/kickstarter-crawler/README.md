@@ -83,9 +83,27 @@ const targetUrls: string[] = [
 | `retryCount` | `3` | 실패 시 재시도 횟수 |
 | `maxProjects` | `10` | 한 번에 크롤링할 최대 프로젝트 수 |
 
+### 리뷰 크롤링 옵션
+
+환경변수 또는 코드에서 설정:
+
+| 옵션 | 기본값 | 설명 |
+|------|--------|------|
+| `CRAWL_REVIEWS` | `true` | 리뷰(댓글) 수집 여부 |
+| `MAX_REVIEWS` | `10` | 수집할 최대 리뷰 개수 |
+
+**사용 예시:**
+```bash
+# 리뷰 크롤링 비활성화
+CRAWL_REVIEWS=false pnpm crawl
+
+# 최대 20개 리뷰 수집
+MAX_REVIEWS=20 pnpm crawl
+```
+
 ## 📊 저장되는 데이터
 
-크롤링된 Kickstarter 프로젝트는 쇼핑몰의 `products` 테이블에 다음과 같이 저장됩니다:
+### 상품 데이터 (`products` 테이블)
 
 | Kickstarter | → | products 테이블 |
 |-------------|---|-----------------|
@@ -99,6 +117,17 @@ const targetUrls: string[] = [
 | 후원자 수 | → | `external_review_count` |
 | 프로젝트 URL | → | `source_url` |
 | 태그 | → | `tags` (카테고리, 위치, 상태 등) |
+
+### 리뷰 데이터 (`external_reviews` 테이블)
+
+| 수집 항목 | 필드명 | 설명 |
+|----------|--------|------|
+| 댓글 내용 | `content` | 후원자 댓글 |
+| 작성자 이름 | `reviewer_name` | 댓글 작성자 |
+| 작성일 | `review_date` | 댓글 작성 날짜 |
+| 플랫폼 | `source_platform` | 'kickstarter' |
+| 언어 | `source_language` | 'en' (영어) |
+| 검증된 구매 | `is_verified_purchase` | `true` (후원자만 작성 가능) |
 
 ## ⚠️ 주의사항
 

@@ -71,6 +71,10 @@ const CONFIG: CrawlConfig = {
   maxProjects: parseInt(process.env.MAX_PRODUCTS || '10'),
 };
 
+// 리뷰 크롤링 설정
+const CRAWL_REVIEWS = process.env.CRAWL_REVIEWS !== 'false';
+const MAX_REVIEWS = parseInt(process.env.MAX_REVIEWS || '10');
+
 // 카테고리 ID 매핑
 const CATEGORY_IDS: Record<KickstarterCategory, string> = {
   technology: '16',
@@ -298,6 +302,91 @@ class KickstarterCrawler {
 
     console.log(`📦 ${projectUrls.length}개 프로젝트 URL 발견\n`);
     return projectUrls.slice(0, CONFIG.maxProjects);
+  }
+
+  // ============================================
+  // Kickstarter 댓글/업데이트 수집
+  // ============================================
+
+  private async extractKickstarterComments(url: string, maxComments: number = 10): Promise<Review[]> {
+    if (!this.page) return [];
+
+    const reviews: Review[] = [];
+    
+    try {
+      // 댓글 페이지 URL 생성
+      const commentsUrl = url + '/comments';
+      
+      console.log(`   🔍 댓글 수집 시작 (최대 ${maxComments}개)...`);
+      
+      await this.page.goto(commentsUrl, {
+        waitUntil: 'networkidle2',
+        timeout: CONFIG.timeout,
+      });
+
+      await delay(2000);
+
+      // 페이지에서 댓글 추출
+      const commentData = await this.page.evaluate(`
+        (function() {
+          var comments = [];
+          
+          // 댓글 컨테이너 찾기 (Kickstarter의 댓글 구조)
+          var commentElements = document.querySelectorAll('[data-test-id="comment"], .pl0 .mb3, .comment');
+          
+          for (var i = 0; i < commentElements.length && i < ${maxComments}; i++) {
+            var element = commentElements[i];
+            
+            // 댓글 내용
+            var contentEl = element.querySelector('.body, .comment-body, p') || element;
+            var content = contentEl.textContent ? contentEl.textContent.trim() : '';
+            
+            // 작성자 이름
+            var authorEl = element.querySelector('.author, .name, strong, [data-test-id="comment-author"]');
+            var author = authorEl ? authorEl.textContent.trim() : null;
+            
+            // 작성일
+            var dateEl = element.querySelector('time, .date, [datetime]');
+            var dateStr = dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : null;
+            
+            if (content && content.length > 10) {
+              comments.push({
+                content: content,
+                reviewerName: author,
+                reviewerCountry: null,
+                rating: null,
+                reviewDate: dateStr,
+                helpfulCount: 0,
+                isVerifiedPurchase: true, // Kickstarter 댓글은 후원자만 가능
+                sourceReviewId: null,
+              });
+            }
+          }
+          
+          return comments;
+        })()
+      `);
+
+      for (const comment of commentData) {
+        reviews.push({
+          content: comment.content,
+          reviewerName: comment.reviewerName,
+          reviewerCountry: comment.reviewerCountry,
+          rating: comment.rating,
+          reviewDate: comment.reviewDate ? new Date(comment.reviewDate) : null,
+          helpfulCount: comment.helpfulCount,
+          isVerifiedPurchase: comment.isVerifiedPurchase,
+          sourceReviewId: comment.sourceReviewId,
+        });
+      }
+
+      console.log(`   ✅ ${reviews.length}개의 댓글 수집 완료`);
+
+    } catch (error) {
+      console.error(`   ⚠️ 댓글 수집 실패:`, error);
+    }
+
+    return reviews;
   }
 
   // ============================================
@@ -626,6 +715,11 @@ class KickstarterCrawler {
         crawledAt: new Date().toISOString(),
       };
 
+      // 리뷰 수집
+      if (CRAWL_REVIEWS) {
+        project.reviews = await this.extractKickstarterComments(url, MAX_REVIEWS);
+      }
+
       console.log(`   ✅ "${project.title}"`);
       console.log(`      💰 ${project.pledgedAmount.toLocaleString()} ${project.currency} (${project.percentFunded}%)`);
       console.log(`      👥 ${project.backersCount.toLocaleString()}명 후원`);
@@ -634,6 +728,9 @@ class KickstarterCrawler {
       }
       if (project.videoUrl) {
         console.log(`      🎬 영상 URL: ${project.videoUrl.substring(0, 50)}...`);
+      }
+      if (project.reviews && project.reviews.length > 0) {
+        console.log(`      💬 댓글: ${project.reviews.length}개 수집됨`);
       }
       console.log('');
 
@@ -731,7 +828,36 @@ async function saveToSupabase(project: KickstarterProject): Promise<string | nul
     return null;
   }
 
-  console.log(`   💾 저장 완료: ${data.id}\n`);
+  console.log(`   💾 저장 완료: ${data.id}`);
+
+  // 리뷰 저장
+  if (project.reviews && project.reviews.length > 0) {
+    const reviewInserts = project.reviews.map(review => ({
+      product_id: data.id,
+      content: review.content,
+      reviewer_name: review.reviewerName,
+      reviewer_country: review.reviewerCountry,
+      rating: review.rating,
+      source_language: 'en',
+      source_platform: 'kickstarter',
+      source_review_id: review.sourceReviewId,
+      review_date: review.reviewDate?.toISOString().split('T')[0] || null,
+      helpful_count: review.helpfulCount,
+      is_verified_purchase: review.isVerifiedPurchase,
+    }));
+
+    const { error: reviewsError } = await supabase
+      .from('external_reviews')
+      .insert(reviewInserts);
+
+    if (reviewsError) {
+      console.error('   ⚠️ 리뷰 저장 실패:', reviewsError.message);
+    } else {
+      console.log(`   ✅ ${project.reviews.length}개의 리뷰 저장 완료`);
+    }
+  }
+
+  console.log('');
   return data.id;
 }
 
