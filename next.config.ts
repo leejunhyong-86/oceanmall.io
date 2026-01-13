@@ -39,6 +39,12 @@ const nextConfig: NextConfig = {
       { hostname: "gd2.alicdn.com" },
       { hostname: "gd3.alicdn.com" },
       { hostname: "gd4.alicdn.com" },
+      // Instagram 이미지 (Phase 2: Instagram 피드)
+      { hostname: "scontent.cdninstagram.com" },
+      { hostname: "*.cdninstagram.com", protocol: "https" },
+      // YouTube 썸네일 (Phase 3 대비)
+      { hostname: "i.ytimg.com" },
+      { hostname: "img.youtube.com" },
     ],
   },
   // HTTP 431 에러 방지: 헤더 크기 제한 증가

@@ -9,6 +9,7 @@
  * - CategoryNavbar: 카테고리 네비게이션 바
  * - Today's New Section: 오늘의 신상품
  * - Lucky Draw Section: 럭키드로우 이벤트
+ * - Instagram Feed Section: Instagram 최신 게시물
  * - Featured Products Section: 추천 상품 목록
  * - CTA Section: 행동 유도 섹션
  */
@@ -16,11 +17,13 @@
 import Link from 'next/link';
 import { getFeaturedProducts, getNewProducts } from '@/actions/products';
 import { getActiveLuckyDrawEvent } from '@/actions/lucky-draw';
+import { getInstagramFeed } from '@/actions/instagram';
 import { ProductCard } from '@/components/product-card';
 import { HeroHeader } from '@/components/header/hero-header';
 import { CategoryNavbar } from '@/components/header/category-navbar';
 import { TodaysNewSection } from '@/components/home/todays-new-section';
 import { LuckyDrawSection } from '@/components/home/lucky-draw-section';
+import { InstagramFeedSection } from '@/components/home/instagram-feed-section';
 import { ArrowRight } from 'lucide-react';
 
 export default async function HomePage() {
@@ -29,12 +32,14 @@ export default async function HomePage() {
   let featuredProducts: Awaited<ReturnType<typeof getFeaturedProducts>> = [];
   let newProducts: Awaited<ReturnType<typeof getNewProducts>> = [];
   let luckyDrawEvent: Awaited<ReturnType<typeof getActiveLuckyDrawEvent>> = null;
+  let instagramPosts: Awaited<ReturnType<typeof getInstagramFeed>> = [];
 
   try {
-    [featuredProducts, newProducts, luckyDrawEvent] = await Promise.all([
+    [featuredProducts, newProducts, luckyDrawEvent, instagramPosts] = await Promise.all([
       getFeaturedProducts(8),
       getNewProducts(4),
       getActiveLuckyDrawEvent(),
+      getInstagramFeed(6), // Instagram 최신 6개 게시물
     ]);
   } catch (error) {
     console.error('데이터 로드 실패:', error);
@@ -45,8 +50,8 @@ export default async function HomePage() {
     <main className="min-h-screen">
       {/* Hero Header - 중세 세계지도 배경의 히어로 헤더 */}
       <HeroHeader 
-        youtubeUrl="#"
-        instagramUrl="#"
+        youtubeUrl="https://www.youtube.com/@oceancialwave"
+        instagramUrl="https://www.instagram.com/oceancialwave"
       />
 
       {/* Category Navbar - 카테고리 네비게이션 바 */}
@@ -57,6 +62,12 @@ export default async function HomePage() {
 
       {/* Lucky Draw Section - 럭키드로우 이벤트 */}
       <LuckyDrawSection event={luckyDrawEvent} />
+
+      {/* Instagram Feed Section - Instagram 최신 게시물 */}
+      <InstagramFeedSection 
+        posts={instagramPosts} 
+        instagramUrl="https://www.instagram.com/oceancialwave"
+      />
 
       {/* Featured Products Section */}
       <section className="py-16 bg-gray-50">
