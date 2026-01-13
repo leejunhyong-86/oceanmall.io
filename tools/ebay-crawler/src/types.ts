@@ -3,6 +3,18 @@
  * @description eBay 크롤러 타입 정의
  */
 
+// 리뷰 인터페이스
+export interface Review {
+  content: string;                    // 리뷰 내용
+  reviewerName: string | null;        // 리뷰어 이름
+  reviewerCountry: string | null;     // 리뷰어 국가
+  rating: number | null;               // 평점 (0-5)
+  reviewDate: Date | null;             // 작성일
+  helpfulCount: number;                // 도움됨 수
+  isVerifiedPurchase: boolean;         // 검증된 구매 여부
+  sourceReviewId: string | null;       // 원본 리뷰 ID
+}
+
 // eBay 상품 인터페이스
 export interface EbayProduct {
   // 기본 정보
@@ -45,6 +57,9 @@ export interface EbayProduct {
   // 메타 정보
   sourceUrl: string;
   crawledAt: Date;
+  
+  // 리뷰 목록
+  reviews?: Review[];                  // 수집된 리뷰 목록
 }
 
 // 크롤링 설정

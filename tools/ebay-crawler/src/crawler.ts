@@ -30,7 +30,7 @@
 import 'dotenv/config';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { EbayProduct, CrawlConfig, ProductInsert } from './types.js';
+import type { EbayProduct, CrawlConfig, ProductInsert, Review } from './types.js';
 
 // 환경 변수
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -275,6 +275,27 @@ async function getProductUrls(page: Page, maxProducts: number): Promise<string[]
 }
 
 /**
+ * eBay 리뷰 크롤링 함수
+ * 참고: eBay는 상품 리뷰가 적고 판매자 피드백 위주이므로 기본 구조만 제공
+ */
+async function extractEbayReviews(
+  page: Page, 
+  itemId: string, 
+  maxReviews: number = 10
+): Promise<Review[]> {
+  try {
+    console.log(`   ⚠️  eBay는 판매자 피드백 위주로 상품 리뷰가 제한적입니다`);
+    // eBay는 상품 리뷰 시스템이 판매자 피드백 중심이므로
+    // 실제 상품 리뷰 크롤링은 제한적입니다.
+    // 필요 시 페이지 구조 분석 후 구현 가능
+    return [];
+  } catch (error) {
+    console.error(`   ⚠️  eBay 리뷰 크롤링 생략`);
+    return [];
+  }
+}
+
+/**
  * 개별 상품 상세 정보 추출
  */
 async function extractProductDetails(page: Page, url: string): Promise<EbayProduct | null> {
@@ -446,8 +467,9 @@ async function extractProductDetails(page: Page, url: string): Promise<EbayProdu
       location: productData.location,
       sourceUrl: url,
       crawledAt: new Date(),
+      reviews: [], // eBay는 판매자 피드백 위주로 상품 리뷰 크롤링 제한적
     };
-    
+
   } catch (error) {
     console.error(`   ❌ 상품 추출 실패: ${url}`);
     return null;

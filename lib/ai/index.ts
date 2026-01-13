@@ -8,10 +8,12 @@
 
 import type { IAIService, AIProviderType, AIServiceConfig } from './types';
 import { MockAIService } from './mock-service';
+import { OpenAIService } from './openai-service';
 
 // 타입 re-export
 export * from './types';
 export { MockAIService } from './mock-service';
+export { OpenAIService } from './openai-service';
 
 /**
  * AI 서비스 인스턴스를 생성하는 팩토리 함수
@@ -33,9 +35,7 @@ export function createAIService(config?: AIServiceConfig): IAIService {
       return new MockAIService();
 
     case 'openai':
-      // TODO: OpenAI 서비스 구현 후 활성화
-      console.warn('OpenAI service not implemented yet, using mock');
-      return new MockAIService();
+      return new OpenAIService(config?.apiKey, config?.model);
 
     case 'claude':
       // TODO: Claude 서비스 구현 후 활성화

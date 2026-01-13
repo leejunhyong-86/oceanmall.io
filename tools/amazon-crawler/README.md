@@ -46,8 +46,40 @@ pnpm test
 
 ### 크롤링 실행
 
+#### 기본 크롤링 (베스트셀러)
+
 ```bash
 pnpm crawl
+```
+
+#### 특정 상품 URL 직접 크롤링 (NEW!)
+
+하나의 상품:
+```bash
+CRAWL_MODE=direct-url PRODUCT_URLS="https://www.amazon.com/dp/B0BZYCJK89" pnpm crawl
+```
+
+여러 상품 (쉼표로 구분):
+```bash
+CRAWL_MODE=direct-url PRODUCT_URLS="https://www.amazon.com/dp/B0BZYCJK89,https://www.amazon.com/dp/B08N5WRWNW,https://www.amazon.com/dp/B09XYZ1234" pnpm crawl
+```
+
+#### 키워드 검색
+
+```bash
+CRAWL_MODE=search SEARCH_KEYWORD="wireless earbuds" pnpm crawl
+```
+
+#### 신상품 크롤링
+
+```bash
+CRAWL_MODE=new-releases pnpm crawl
+```
+
+#### 인기 급상승 상품
+
+```bash
+CRAWL_MODE=movers-shakers pnpm crawl
 ```
 
 ## 크롤링 대상

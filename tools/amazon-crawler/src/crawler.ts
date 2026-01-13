@@ -30,14 +30,14 @@
 import 'dotenv/config';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { AmazonProduct, CrawlConfig, ProductInsert } from './types.js';
+import type { AmazonProduct, CrawlConfig, ProductInsert, Review } from './types.js';
 
 // 환경 변수
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // 크롤링 모드 타입
-type CrawlMode = 'bestsellers' | 'new-releases' | 'movers-shakers' | 'search';
+type CrawlMode = 'bestsellers' | 'new-releases' | 'movers-shakers' | 'search' | 'direct-url';
 
 // 카테고리 타입
 type AmazonCategory = 'electronics' | 'beauty' | 'home-garden' | 'fashion' | 'toys' | 'books' | 'all';
@@ -53,6 +53,9 @@ const config: CrawlConfig = {
 const CRAWL_MODE: CrawlMode = (process.env.CRAWL_MODE as CrawlMode) || 'bestsellers';
 const SEARCH_KEYWORD = process.env.SEARCH_KEYWORD || '';
 const CATEGORY: AmazonCategory = (process.env.CATEGORY as AmazonCategory) || 'all';
+
+// 직접 URL 크롤링을 위한 환경변수
+const PRODUCT_URLS = process.env.PRODUCT_URLS || ''; // 쉼표로 구분된 URL 목록
 
 // 카테고리별 URL 매핑
 const CATEGORY_URLS: Record<AmazonCategory, { bestsellers: string; newReleases: string; moversShakers: string }> = {
@@ -198,6 +201,40 @@ function getUrlsForMode(mode: CrawlMode, category: AmazonCategory): string[] {
         `https://www.amazon.com/s?k=${encodedKeyword}`,
       ];
 
+    case 'direct-url':
+      if (!PRODUCT_URLS) {
+        console.error('❌ PRODUCT_URLS 환경변수가 설정되지 않았습니다.');
+        console.error('   예시: PRODUCT_URLS="https://www.amazon.com/dp/B0BZYCJK89,https://www.amazon.com/dp/B08N5WRWNW"');
+        return [];
+      }
+      // 쉼표로 구분된 URL을 배열로 변환하고 공백 제거
+      const urls = PRODUCT_URLS.split(',').map(url => url.trim()).filter(url => url.length > 0);
+      
+      // URL을 정규화 (쿼리 파라미터 제거, Amazon 도메인 확인)
+      const normalizedUrls = urls.map(url => {
+        try {
+          // ASIN 추출
+          const asinMatch = url.match(/\/dp\/([A-Z0-9]{10})/);
+          if (asinMatch) {
+            const asin = asinMatch[1];
+            // 표준 Amazon 상품 URL로 변환
+            return `https://www.amazon.com/dp/${asin}`;
+          }
+          // URL에 /dp/가 없으면 그대로 반환 (에러 처리는 나중에)
+          return url.split('?')[0]; // 최소한 쿼리 파라미터는 제거
+        } catch (e) {
+          console.error(`   ⚠️ URL 파싱 실패: ${url}`);
+          return url;
+        }
+      });
+      
+      console.log(`   📋 ${normalizedUrls.length}개의 URL이 설정되었습니다`);
+      normalizedUrls.forEach((url, idx) => {
+        console.log(`      [${idx + 1}] ${url}`);
+      });
+      
+      return normalizedUrls;
+
     default:
       return [CATEGORY_URLS.all.bestsellers];
   }
@@ -291,9 +328,17 @@ async function getProductUrls(page: Page, maxProducts: number): Promise<string[]
     'new-releases': '신상품',
     'movers-shakers': '인기 급상승',
     search: `검색: "${SEARCH_KEYWORD}"`,
+    'direct-url': '직접 지정한 URL',
   }[CRAWL_MODE];
 
   console.log(`📦 Amazon ${modeLabel} 크롤링 시작...`);
+  
+  // 직접 URL 모드인 경우, 상품 페이지를 크롤링할 필요 없이 바로 URL 반환
+  if (CRAWL_MODE === 'direct-url') {
+    const urls = getUrlsForMode(CRAWL_MODE, CATEGORY);
+    console.log(`   ✅ ${urls.length}개의 상품 URL 준비 완료`);
+    return urls;
+  }
 
   const categoryUrls = getUrlsForMode(CRAWL_MODE, CATEGORY);
 
@@ -354,6 +399,226 @@ async function getProductUrls(page: Page, maxProducts: number): Promise<string[]
   }
 
   return productUrls.slice(0, maxProducts);
+}
+
+/**
+ * Amazon 리뷰 크롤링 함수 (개선된 버전)
+ * 전략 1: 상품 페이지 자체에서 리뷰 추출 (이미 로드된 페이지 활용)
+ * 전략 2: 실패 시 리뷰 페이지로 이동 시도
+ */
+async function extractAmazonReviews(
+  page: Page, 
+  asin: string, 
+  maxReviews: number = 20
+): Promise<Review[]> {
+  try {
+    console.log(`   📝 리뷰 수집 시작 (목표: ${maxReviews}개)...`);
+    
+    // 전략 1: 현재 상품 페이지에서 리뷰 추출 (가장 안전)
+    console.log(`   🔍 상품 페이지 내 리뷰 추출 중...`);
+    
+    // 리뷰 섹션으로 스크롤
+    try {
+      await page.evaluate(() => {
+        const reviewSection = document.querySelector('#reviewsMedley') || 
+                             document.querySelector('#customer-reviews') ||
+                             document.querySelector('[data-hook="reviews-medley-footer"]');
+        if (reviewSection) {
+          reviewSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+      await new Promise(r => setTimeout(r, 2000));
+    } catch (e) {
+      console.log(`   ℹ️  리뷰 섹션 스크롤 실패, 계속 진행...`);
+    }
+    
+    // 상품 페이지에서 리뷰 추출
+    let reviews = await page.evaluate((max) => {
+      const reviewElements = document.querySelectorAll('[data-hook="review"]');
+      const results: any[] = [];
+      
+      console.log(`Found ${reviewElements.length} review elements on product page`);
+      
+      for (let i = 0; i < Math.min(reviewElements.length, max); i++) {
+        const el = reviewElements[i];
+        
+        // 리뷰 내용
+        const contentEl = el.querySelector('[data-hook="review-body"] span') ||
+                         el.querySelector('[data-hook="review-body"]') ||
+                         el.querySelector('.review-text');
+        const content = contentEl?.textContent?.trim() || '';
+        
+        // 리뷰어 정보
+        const reviewerEl = el.querySelector('.a-profile-name') ||
+                          el.querySelector('[data-hook="review-author"]');
+        const reviewerName = reviewerEl?.textContent?.trim() || null;
+        
+        // 평점
+        const ratingEl = el.querySelector('[data-hook="review-star-rating"]') ||
+                        el.querySelector('.review-rating');
+        const ratingText = ratingEl?.textContent?.trim() || '';
+        const ratingMatch = ratingText.match(/(\d+\.?\d*)/);
+        const rating = ratingMatch ? parseFloat(ratingMatch[1]) : null;
+        
+        // 날짜
+        const dateEl = el.querySelector('[data-hook="review-date"]') ||
+                      el.querySelector('.review-date');
+        const dateText = dateEl?.textContent?.trim() || '';
+        const dateMatch = dateText.match(/on (.+?)$/) || dateText.match(/(\w+ \d+, \d{4})/);
+        const reviewDate = dateMatch ? dateMatch[1] : null;
+        
+        // 도움됨 수
+        const helpfulEl = el.querySelector('[data-hook="helpful-vote-statement"]');
+        const helpfulText = helpfulEl?.textContent?.trim() || '';
+        const helpfulMatch = helpfulText.match(/(\d+)/);
+        const helpfulCount = helpfulMatch ? parseInt(helpfulMatch[1]) : 0;
+        
+        // 검증된 구매
+        const verifiedEl = el.querySelector('[data-hook="avp-badge"]');
+        const isVerifiedPurchase = !!verifiedEl;
+        
+        // 리뷰 ID
+        const reviewId = el.getAttribute('data-review-id') || null;
+        
+        if (content && content.length > 10) { // 최소 길이 확인
+          results.push({
+            content,
+            reviewerName,
+            reviewerCountry: null,
+            rating,
+            reviewDate,
+            helpfulCount,
+            isVerifiedPurchase,
+            sourceReviewId: reviewId,
+          });
+        }
+      }
+      
+      return results;
+    }, maxReviews);
+    
+    console.log(`   ✅ 상품 페이지에서 ${reviews.length}개의 리뷰 수집`);
+    
+    // 전략 2: 충분하지 않으면 리뷰 페이지로 이동 시도
+    if (reviews.length < maxReviews && reviews.length < 5) {
+      console.log(`   🔄 더 많은 리뷰를 위해 리뷰 페이지로 이동 시도...`);
+      
+      try {
+        // "See all reviews" 링크 찾기
+        const reviewPageUrl = await page.evaluate(() => {
+          const seeAllLink = document.querySelector('a[data-hook="see-all-reviews-link-foot"]') ||
+                            document.querySelector('a[href*="/product-reviews/"]');
+          return seeAllLink ? seeAllLink.getAttribute('href') : null;
+        });
+        
+        if (reviewPageUrl) {
+          const fullUrl = reviewPageUrl.startsWith('http') 
+            ? reviewPageUrl 
+            : `https://www.amazon.com${reviewPageUrl}`;
+          
+          console.log(`   🌐 리뷰 페이지 접속: ${fullUrl}`);
+          
+          // 봇처럼 보이지 않도록 랜덤 대기
+          await new Promise(r => setTimeout(r, 3000 + Math.random() * 3000));
+          
+          // 리뷰 페이지로 이동
+          await page.goto(fullUrl, { 
+            waitUntil: 'domcontentloaded', 
+            timeout: 30000 
+          });
+          
+          // 페이지 로드 후 대기
+          await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
+          
+          // CAPTCHA 확인
+          const hasCaptcha = await page.evaluate(() => {
+            return document.body.textContent?.includes('Enter the characters you see below') ||
+                   document.querySelector('form[action*="captcha"]') !== null;
+          });
+          
+          if (hasCaptcha) {
+            console.log(`   ⚠️  CAPTCHA 감지됨 - 상품 페이지 리뷰만 사용합니다`);
+            // 상품 페이지에서 수집한 리뷰 반환
+          } else {
+            // 리뷰 페이지에서 추가 리뷰 추출
+            const additionalReviews = await page.evaluate((max, existing) => {
+              const reviewElements = document.querySelectorAll('[data-hook="review"]');
+              const results: any[] = [];
+              
+              for (let i = 0; i < Math.min(reviewElements.length, max); i++) {
+                const el = reviewElements[i];
+                
+                const contentEl = el.querySelector('[data-hook="review-body"] span');
+                const content = contentEl?.textContent?.trim() || '';
+                
+                const reviewerEl = el.querySelector('.a-profile-name');
+                const reviewerName = reviewerEl?.textContent?.trim() || null;
+                
+                const ratingEl = el.querySelector('[data-hook="review-star-rating"]');
+                const ratingText = ratingEl?.textContent?.trim() || '';
+                const ratingMatch = ratingText.match(/(\d+\.?\d*)/);
+                const rating = ratingMatch ? parseFloat(ratingMatch[1]) : null;
+                
+                const dateEl = el.querySelector('[data-hook="review-date"]');
+                const dateText = dateEl?.textContent?.trim() || '';
+                const dateMatch = dateText.match(/on (.+?)$/);
+                const reviewDate = dateMatch ? dateMatch[1] : null;
+                
+                const helpfulEl = el.querySelector('[data-hook="helpful-vote-statement"]');
+                const helpfulText = helpfulEl?.textContent?.trim() || '';
+                const helpfulMatch = helpfulText.match(/(\d+)/);
+                const helpfulCount = helpfulMatch ? parseInt(helpfulMatch[1]) : 0;
+                
+                const verifiedEl = el.querySelector('[data-hook="avp-badge"]');
+                const isVerifiedPurchase = !!verifiedEl;
+                
+                const reviewId = el.getAttribute('data-review-id') || null;
+                
+                // 중복 체크
+                const isDuplicate = existing.some((r: any) => 
+                  r.sourceReviewId && reviewId && r.sourceReviewId === reviewId
+                );
+                
+                if (content && content.length > 10 && !isDuplicate) {
+                  results.push({
+                    content,
+                    reviewerName,
+                    reviewerCountry: null,
+                    rating,
+                    reviewDate,
+                    helpfulCount,
+                    isVerifiedPurchase,
+                    sourceReviewId: reviewId,
+                  });
+                }
+              }
+              
+              return results;
+            }, maxReviews, reviews);
+            
+            console.log(`   ✅ 리뷰 페이지에서 ${additionalReviews.length}개의 추가 리뷰 수집`);
+            reviews = [...reviews, ...additionalReviews].slice(0, maxReviews);
+          }
+        }
+      } catch (error) {
+        console.log(`   ⚠️  리뷰 페이지 접근 실패, 상품 페이지 리뷰만 사용합니다`);
+      }
+    }
+    
+    // Date 객체로 변환
+    const processedReviews: Review[] = reviews.map(r => ({
+      ...r,
+      reviewDate: r.reviewDate ? new Date(r.reviewDate) : null,
+    }));
+    
+    console.log(`   ✅ 총 ${processedReviews.length}개의 리뷰 수집 완료`);
+    
+    return processedReviews;
+    
+  } catch (error) {
+    console.error(`   ❌ 리뷰 크롤링 실패:`, error);
+    return [];
+  }
 }
 
 /**
@@ -807,6 +1072,16 @@ async function extractProductDetails(page: Page, url: string): Promise<AmazonPro
       return null;
     }
 
+    // 리뷰 크롤링 (환경변수로 제어)
+    const shouldCrawlReviews = process.env.CRAWL_REVIEWS !== 'false';
+    const maxReviews = parseInt(process.env.MAX_REVIEWS || '20');
+    
+    let reviews: Review[] = [];
+    if (shouldCrawlReviews && productData.asin) {
+      console.log(`   🔍 리뷰 크롤링 시작 (최대 ${maxReviews}개)...`);
+      reviews = await extractAmazonReviews(page, productData.asin, maxReviews);
+    }
+
     return {
       asin: productData.asin,
       title: productData.title,
@@ -830,6 +1105,7 @@ async function extractProductDetails(page: Page, url: string): Promise<AmazonPro
       availability: productData.availability,
       sourceUrl: url,
       crawledAt: new Date(),
+      reviews: reviews,
     };
 
   } catch (error) {
@@ -877,7 +1153,35 @@ async function saveToSupabase(
       return false;
     }
 
-    console.log(`   ✅ 저장 완료: ${product.title.substring(0, 50)}...`);
+    console.log(`   ✅ 상품 저장 완료: ${product.title.substring(0, 50)}...`);
+    
+    // 리뷰 저장
+    if (product.reviews && product.reviews.length > 0) {
+      const reviewInserts = product.reviews.map(review => ({
+        product_id: data.id,
+        content: review.content,
+        reviewer_name: review.reviewerName,
+        reviewer_country: review.reviewerCountry,
+        rating: review.rating,
+        source_language: 'en',
+        source_platform: 'amazon',
+        source_review_id: review.sourceReviewId,
+        review_date: review.reviewDate?.toISOString().split('T')[0] || null,
+        helpful_count: review.helpfulCount,
+        is_verified_purchase: review.isVerifiedPurchase,
+      }));
+      
+      const { error: reviewsError } = await supabase
+        .from('external_reviews')
+        .insert(reviewInserts);
+      
+      if (reviewsError) {
+        console.error(`   ⚠️ 리뷰 저장 실패:`, reviewsError.message);
+      } else {
+        console.log(`   ✅ ${product.reviews.length}개의 리뷰 저장 완료`);
+      }
+    }
+    
     return true;
 
   } catch (error) {

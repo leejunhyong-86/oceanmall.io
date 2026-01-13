@@ -4,6 +4,21 @@
  */
 
 // ============================================
+// 리뷰 인터페이스
+// ============================================
+
+export interface Review {
+  content: string;                    // 리뷰 내용
+  reviewerName: string | null;        // 리뷰어 이름
+  reviewerCountry: string | null;     // 리뷰어 국가
+  rating: number | null;               // 평점 (0-5)
+  reviewDate: Date | null;             // 작성일
+  helpfulCount: number;                // 도움됨 수
+  isVerifiedPurchase: boolean;         // 검증된 구매 여부
+  sourceReviewId: string | null;       // 원본 리뷰 ID
+}
+
+// ============================================
 // 와디즈 프로젝트 타입
 // ============================================
 
@@ -45,6 +60,9 @@ export interface WadizProject {
   // 메타
   sourceUrl: string;
   crawledAt: string;
+  
+  // 리뷰 목록
+  reviews?: Review[];                  // 수집된 후기 목록
 }
 
 // ============================================

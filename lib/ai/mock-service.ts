@@ -53,11 +53,45 @@ export class MockAIService implements IAIService {
    * 실제로는 AI가 번역하지만, 여기서는 간단한 Mock 응답을 반환합니다.
    */
   async translate(input: TranslateInput): Promise<TranslateOutput> {
-    await this.simulateDelay(500);
+    await this.simulateDelay(800);
 
-    // Mock: 원문에 번역 표시만 추가
+    // Mock 번역: 간단한 키워드 기반 번역 시뮬레이션
+    let translatedText = input.text;
+    
+    if (input.targetLanguage === 'ko' && input.sourceLanguage === 'en') {
+      // 간단한 키워드 치환 (실제 번역 아님, 데모용)
+      const translations: Record<string, string> = {
+        'love': '사랑',
+        'great': '훌륭한',
+        'good': '좋은',
+        'excellent': '최고의',
+        'perfect': '완벽한',
+        'quality': '품질',
+        'fast': '빠른',
+        'slow': '느린',
+        'shipping': '배송',
+        'delivery': '배송',
+        'product': '제품',
+        'price': '가격',
+        'beautiful': '아름다운',
+        'color': '색상',
+        'size': '사이즈',
+        'comfortable': '편안한',
+        'recommend': '추천',
+      };
+      
+      // Mock 번역 (실제로는 AI가 전체 문장을 자연스럽게 번역)
+      translatedText = `[한국어 번역] ${input.text}`;
+      
+      // 키워드 일부만 치환
+      Object.entries(translations).forEach(([eng, kor]) => {
+        const regex = new RegExp(`\\b${eng}\\b`, 'gi');
+        translatedText = translatedText.replace(regex, kor);
+      });
+    }
+
     return {
-      translatedText: `[${input.targetLanguage}로 번역됨] ${input.text}`,
+      translatedText,
       detectedLanguage: input.sourceLanguage,
     };
   }
