@@ -1,43 +1,43 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 
 /**
  * @file CustomCursor.tsx
- * @description 마우스를 따라다니는 커스텀 커서 캐릭터 컴포넌트
+ * @description 留덉슦?ㅻ? ?곕씪?ㅻ땲??而ㅼ뒪? 而ㅼ꽌 罹먮┃??而댄룷?뚰듃
  *
- * 주요 기능:
- * 1. 마우스 포인터 좌측 하단에 캐릭터 배치
- * 2. Lerp(Linear Interpolation)를 통한 부드러운 추적
- * 3. 걷는 듯한 절차적 애니메이션 (Bobbing, Tilting)
- * 4. 이동 방향에 따른 캐릭터 방향 전환
- * 5. 터치/모바일 디바이스에서는 자동 비활성화
+ * 二쇱슂 湲곕뒫:
+ * 1. 留덉슦???ъ씤??醫뚯륫 ?섎떒??罹먮┃??諛곗튂
+ * 2. Lerp(Linear Interpolation)瑜??듯븳 遺?쒕윭??異붿쟻
+ * 3. 嫄룸뒗 ??븳 ?덉감???좊땲硫붿씠??(Bobbing, Tilting)
+ * 4. ?대룞 諛⑺뼢???곕Ⅸ 罹먮┃??諛⑺뼢 ?꾪솚
+ * 5. ?곗튂/紐⑤컮???붾컮?댁뒪?먯꽌???먮룞 鍮꾪솢?깊솕
  */
 
-// 캐릭터 위치 오프셋 (마우스 포인터 기준 좌측 하단)
-const CURSOR_OFFSET_X = -10; // 좌측으로 이동
-const CURSOR_OFFSET_Y = 30;  // 하단으로 이동
-const LERP_FACTOR = 0.15;    // 추적 부드러움 정도 (낮을수록 느림)
+// 罹먮┃???꾩튂 ?ㅽ봽??(留덉슦???ъ씤??湲곗? 醫뚯륫 ?섎떒)
+const CURSOR_OFFSET_X = -10; // 醫뚯륫?쇰줈 ?대룞
+const CURSOR_OFFSET_Y = 30;  // ?섎떒?쇰줈 ?대룞
+const LERP_FACTOR = 0.15;    // 異붿쟻 遺?쒕윭? ?뺣룄 (??쓣?섎줉 ?먮┝)
 
 /**
- * 터치 디바이스 감지 함수
- * - 터치 이벤트 지원 여부
- * - 포인터 타입 확인 (coarse = 터치, fine = 마우스)
- * - 최대 터치 포인트 확인
+ * ?곗튂 ?붾컮?댁뒪 媛먯? ?⑥닔
+ * - ?곗튂 ?대깽??吏???щ?
+ * - ?ъ씤??????뺤씤 (coarse = ?곗튂, fine = 留덉슦??
+ * - 理쒕? ?곗튂 ?ъ씤???뺤씤
  */
 function isTouchDevice(): boolean {
     if (typeof window === 'undefined') return false;
     
-    // 터치 이벤트 지원 확인
+    // ?곗튂 ?대깽??吏???뺤씤
     const hasTouchEvent = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     
-    // 포인터 타입 확인 (fine = 정밀한 포인터 = 마우스)
+    // ?ъ씤??????뺤씤 (fine = ?뺣????ъ씤??= 留덉슦??
     const hasFinePonter = window.matchMedia('(pointer: fine)').matches;
     
-    // 호버 지원 확인 (터치 디바이스는 호버 불가)
+    // ?몃쾭 吏???뺤씤 (?곗튂 ?붾컮?댁뒪???몃쾭 遺덇?)
     const canHover = window.matchMedia('(hover: hover)').matches;
     
-    // 터치 이벤트가 있고, 정밀한 포인터가 없거나 호버가 안되면 터치 디바이스
+    // ?곗튂 ?대깽?멸? ?덇퀬, ?뺣????ъ씤?곌? ?녾굅???몃쾭媛 ?덈릺硫??곗튂 ?붾컮?댁뒪
     return hasTouchEvent && (!hasFinePonter || !canHover);
 }
 
@@ -52,25 +52,25 @@ export default function CustomCursor() {
     const frameId = useRef<number>(0);
     const lastTime = useRef<number>(0);
     const walkCycle = useRef<number>(0);
-    const lastScaleX = useRef<number>(1); // 이전 방향 유지용
+    const lastScaleX = useRef<number>(1); // ?댁쟾 諛⑺뼢 ?좎???
 
-    // 터치 디바이스 감지 및 터치 이벤트 발생 시 커서 숨기기
+    // ?곗튂 ?붾컮?댁뒪 媛먯? 諛??곗튂 ?대깽??諛쒖깮 ??而ㅼ꽌 ?④린湲?
     useEffect(() => {
-        // 초기 터치 디바이스 감지
+        // 珥덇린 ?곗튂 ?붾컮?댁뒪 媛먯?
         if (isTouchDevice()) {
             setIsTouchMode(true);
             return;
         }
 
-        // 터치 이벤트 발생 시 커서 숨기기 (하이브리드 디바이스 대응)
+        // ?곗튂 ?대깽??諛쒖깮 ??而ㅼ꽌 ?④린湲?(?섏씠釉뚮━???붾컮?댁뒪 ???
         const onTouchStart = () => {
             setIsTouchMode(true);
             setIsVisible(false);
         };
 
-        // 마우스 이벤트 발생 시 다시 활성화 (하이브리드 디바이스에서 마우스 연결 시)
+        // 留덉슦???대깽??諛쒖깮 ???ㅼ떆 ?쒖꽦??(?섏씠釉뚮━???붾컮?댁뒪?먯꽌 留덉슦???곌껐 ??
         const onMouseEnter = () => {
-            // 마우스 이벤트가 터치에서 에뮬레이션된 것이 아닌지 확인
+            // 留덉슦???대깽?멸? ?곗튂?먯꽌 ?먮??덉씠?섎맂 寃껋씠 ?꾨땶吏 ?뺤씤
             if (!isTouchDevice()) {
                 setIsTouchMode(false);
             }
@@ -86,13 +86,13 @@ export default function CustomCursor() {
     }, []);
 
     useEffect(() => {
-        // 터치 모드에서는 커서 비활성화
+        // ?곗튂 紐⑤뱶?먯꽌??而ㅼ꽌 鍮꾪솢?깊솕
         if (isTouchMode) return;
 
         // Show cursor when interaction starts
         const onMouseMove = (e: MouseEvent) => {
-            // 터치에서 에뮬레이션된 마우스 이벤트 무시
-            // sourceCapabilities가 있고 firesTouchEvents가 true이면 터치에서 발생한 이벤트
+            // ?곗튂?먯꽌 ?먮??덉씠?섎맂 留덉슦???대깽??臾댁떆
+            // sourceCapabilities媛 ?덇퀬 firesTouchEvents媛 true?대㈃ ?곗튂?먯꽌 諛쒖깮???대깽??
             const sourceCapabilities = (e as MouseEvent & { sourceCapabilities?: { firesTouchEvents?: boolean } }).sourceCapabilities;
             if (sourceCapabilities?.firesTouchEvents) {
                 return;
@@ -101,7 +101,7 @@ export default function CustomCursor() {
             const newPos = { x: e.clientX, y: e.clientY };
             mousePos.current = newPos;
 
-            // 첫 등장 시 마우스 위치로 즉시 이동 (어색한 날아오기 방지)
+            // 泥??깆옣 ??留덉슦???꾩튂濡?利됱떆 ?대룞 (?댁깋???좎븘?ㅺ린 諛⑹?)
             if (!isVisible) {
                 currentPos.current = { ...newPos };
                 setIsVisible(true);
@@ -152,7 +152,7 @@ export default function CustomCursor() {
                     // else: scaleX remains as lastScaleX.current
                 }
 
-                // 좌측 하단 오프셋 적용
+                // 醫뚯륫 ?섎떒 ?ㅽ봽???곸슜
                 const finalX = currentPos.current.x + CURSOR_OFFSET_X;
                 const finalY = currentPos.current.y + CURSOR_OFFSET_Y + bobOffset;
 
@@ -172,7 +172,7 @@ export default function CustomCursor() {
         };
     }, [isVisible, isTouchMode]);
 
-    // 터치 모드이거나 보이지 않으면 렌더링하지 않음
+    // ?곗튂 紐⑤뱶?닿굅??蹂댁씠吏 ?딆쑝硫??뚮뜑留곹븯吏 ?딆쓬
     if (isTouchMode || !isVisible) return null;
 
     return (
@@ -187,8 +187,9 @@ export default function CustomCursor() {
             <img
                 src="/KakaoTalk_20251224_134851796-removebg-preview.png"
                 alt="Custom Cursor"
-                className="w-32 h-auto drop-shadow-lg"
+                className="w-16 h-auto drop-shadow-lg"
             />
         </div>
     );
 }
+

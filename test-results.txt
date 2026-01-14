@@ -1,0 +1,49 @@
+﻿[dotenv@17.2.3] injecting env (16) from .env.local -- tip: ?썱截? run anywhere with `dotenvx run -- yourcommand`
+================================================================================
+Instagram & YouTube API ?듯빀 ?뚯뒪??================================================================================
+
+?뱥 1. ?섍꼍 蹂???뺤씤
+--------------------------------------------------------------------------------
+
+?뵺 Instagram:
+  NEXT_PUBLIC_INSTAGRAM_BUSINESS_ACCOUNT_ID: ???ㅼ젙??    媛? 748556824482320
+  INSTAGRAM_ACCESS_TOKEN: ???ㅼ젙??    媛? EAAKozveeEhABQbjgL4E...B3DVgvnOFf
+
+?뵺 YouTube:
+  NEXT_PUBLIC_YOUTUBE_CHANNEL_ID: ???ㅼ젙??    媛? UCknwFz17bHp0MjSMro_kVMA
+  YOUTUBE_API_KEY: ???ㅼ젙??    媛? AIzaSyB92YI7kluuTTXo...
+
+?뱥 2. Instagram API ?뚯뒪??--------------------------------------------------------------------------------
+
+?뵺 Instagram Graph API ?몄텧 以?..
+
+  諛⑸쾿 1: graph.instagram.com (Basic Display API)
+    ?곹깭 肄붾뱶: 400 Bad Request
+    ???ㅽ뙣: Invalid OAuth access token - Cannot parse access token
+
+  諛⑸쾿 2: graph.facebook.com (Business Account??
+    ?곹깭 肄붾뱶: 400 Bad Request
+    ???ㅽ뙣: (#100) Tried accessing nonexisting field (media) on node type (Application)
+
+  ?좏겙 ?뺣낫 ?뺤씤:
+    ?좏겙 ??? USER
+    ?좏슚 ?щ?: ???좏슚
+    留뚮즺 ?쒓컙: ?놁쓬 (?κ린 ?좏겙)
+    ?ㅼ퐫?? pages_show_list, ads_management, ads_read, business_management, pages_read_engagement, pages_manage_ads, public_profile
+
+?뱥 3. YouTube API ?뚯뒪??--------------------------------------------------------------------------------
+
+?뵺 YouTube Data API v3 ?몄텧 以?..
+
+  1. 梨꾨꼸 ?뺣낫 ?뺤씤:
+    ?곹깭 肄붾뱶: 403 Forbidden
+    ???ㅽ뙣: Requests from referer <empty> are blocked.
+
+    ?뮕 ?닿껐 諛⑸쾿:
+    1. Google Cloud Console (https://console.cloud.google.com) ?묒냽
+    2. ?꾨줈?앺듃 ?좏깮
+    3. "API 諛??쒕퉬?? > "?쇱씠釉뚮윭由? ?대룞
+    4. "YouTube Data API v3" 寃??諛??쒖꽦??
+================================================================================
+?뚯뒪???꾨즺
+================================================================================
