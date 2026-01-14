@@ -30,6 +30,16 @@ interface YouTubeShortsSectionProps {
 
 export function YouTubeShortsSection({ shorts }: YouTubeShortsSectionProps) {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(6); // 초기 6개만 표시
+
+  // 더보기 버튼 핸들러
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => prev + 6); // 6개씩 추가
+  };
+
+  // 표시할 쇼츠 목록
+  const visibleShorts = shorts.slice(0, visibleCount);
+  const hasMore = visibleCount < shorts.length;
 
   // 쇼츠가 없으면 섹션을 렌더링하지 않음
   if (shorts.length === 0) {
@@ -57,9 +67,9 @@ export function YouTubeShortsSection({ shorts }: YouTubeShortsSectionProps) {
             </div>
           </div>
 
-          {/* 쇼츠 그리드 */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {shorts.map((short) => (
+          {/* 쇼츠 그리드 - 모바일 1열, 태블릿 3열, 데스크탑 6열 */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {visibleShorts.map((short) => (
               <button
                 key={short.id}
                 onClick={() => setSelectedVideo(short.id)}
@@ -99,6 +109,19 @@ export function YouTubeShortsSection({ shorts }: YouTubeShortsSectionProps) {
               </button>
             ))}
           </div>
+
+          {/* 더보기 버튼 */}
+          {hasMore && (
+            <div className="mt-8 text-center">
+              <button
+                onClick={handleLoadMore}
+                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-semibold transition-colors"
+              >
+                더보기
+                <Youtube className="w-5 h-5" />
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -124,7 +147,7 @@ export function YouTubeShortsSection({ shorts }: YouTubeShortsSectionProps) {
           </button>
 
           {/* YouTube iframe */}
-          <div 
+          <div
             className="relative w-full max-w-md aspect-[9/16]"
             onClick={(e) => e.stopPropagation()}
           >

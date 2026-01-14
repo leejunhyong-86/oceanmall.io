@@ -45,7 +45,7 @@ export default async function HomePage() {
       getNewProducts(4),
       getActiveLuckyDrawEvent(),
       getInstagramFeed(6), // Instagram 최신 6개 게시물
-      getYouTubeShorts(12), // YouTube Shorts 최신 12개
+      getYouTubeShorts(18), // YouTube Shorts 최신 18개 (6개 표시 + 12개 더보기)
     ]);
 
     // 각 결과를 처리 (실패한 경우 기본값 사용)
@@ -62,7 +62,7 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen">
       {/* Hero Header - 중세 세계지도 배경의 히어로 헤더 */}
-      <HeroHeader 
+      <HeroHeader
         youtubeUrl="https://www.youtube.com/@oceancialwave"
         instagramUrl="https://www.instagram.com/oceancialwave"
       />
@@ -77,8 +77,8 @@ export default async function HomePage() {
       <LuckyDrawSection event={luckyDrawEvent} />
 
       {/* Instagram Feed Section - Instagram 최신 게시물 */}
-      <InstagramFeedSection 
-        posts={instagramPosts} 
+      <InstagramFeedSection
+        posts={instagramPosts}
         instagramUrl="https://www.instagram.com/oceancialwave"
       />
 
