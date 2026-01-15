@@ -30,11 +30,11 @@ interface ShippingInfo {
   memo: string;
 }
 
-export function CheckoutForm({ 
-  cartItems, 
-  subtotal, 
-  shippingFee, 
-  totalAmount 
+export function CheckoutForm({
+  cartItems,
+  subtotal,
+  shippingFee,
+  totalAmount
 }: CheckoutFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
@@ -83,7 +83,7 @@ export function CheckoutForm({
     // Daum 우편번호 서비스는 전역 객체로 사용
     if (typeof window !== 'undefined' && (window as any).daum?.Postcode) {
       new (window as any).daum.Postcode({
-        oncomplete: function(data: any) {
+        oncomplete: function (data: any) {
           // 주소 검색 결과 처리
           let addr = ''; // 주소 변수
           let extraAddr = ''; // 참고항목 변수
@@ -116,7 +116,7 @@ export function CheckoutForm({
 
           // 우편번호와 주소 정보를 해당 필드에 넣는다.
           const fullAddress = `[${data.zonecode}] ${addr}${extraAddr}`;
-          
+
           setShippingInfo(prev => ({
             ...prev,
             address: fullAddress,
@@ -145,62 +145,29 @@ export function CheckoutForm({
   // 토스페이먼츠 위젯 초기화
   useEffect(() => {
     const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:147',message:'환경 변수 확인 시작',data:{hasKey:!!clientKey,keyPrefix:clientKey?.substring(0,8),keyLength:clientKey?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
-    console.log('토스페이먼츠 클라이언트 키 확인:', {
-      hasKey: !!clientKey,
-      keyPrefix: clientKey?.substring(0, 8),
-      keyLength: clientKey?.length,
-    });
-    
+
     if (!clientKey) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:156',message:'클라이언트 키 없음 - 조기 종료',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       console.error('토스페이먼츠 클라이언트 키가 설정되지 않았습니다.');
       return;
     }
 
     // 키 앞뒤 공백 제거
     const trimmedKey = clientKey.trim();
-    
-    if (!trimmedKey.startsWith('test_gck_') && !trimmedKey.startsWith('live_gck_')) {
-      console.warn('클라이언트 키 형식 확인:', {
-        key: trimmedKey.substring(0, 20) + '...',
-        startsWithGck: trimmedKey.startsWith('test_gck_') || trimmedKey.startsWith('live_gck_'),
-      });
-    }
 
     const initTossPayments = async () => {
       try {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:172',message:'SDK 로드 시작',data:{trimmedKeyPrefix:trimmedKey.substring(0,10)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
         console.log('토스페이먼츠 SDK 로드 시작...');
+        console.log('사용 중인 Client Key (앞 10자리):', trimmedKey.substring(0, 10) + '...');
+
         const tossPayments = await loadTossPayments(trimmedKey);
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:174',message:'SDK 로드 완료',data:{hasWidgets:!!tossPayments.widgets},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
         console.log('토스페이먼츠 SDK 로드 완료');
-        
-        const customerKey = `customer_${Date.now()}`; // 고유 고객 키
+
+        const customerKey = `customer_${Date.now()}`;
         console.log('위젯 인스턴스 생성 중...', { customerKey });
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:179',message:'위젯 인스턴스 생성 전',data:{customerKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
-        
+
         const widgetsInstance = tossPayments.widgets({
           customerKey,
         });
-
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:183',message:'위젯 인스턴스 생성 완료',data:{hasSetAmount:!!widgetsInstance.setAmount,hasRenderPaymentMethods:!!widgetsInstance.renderPaymentMethods},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
 
         console.log('결제 금액 설정 중...', { totalAmount });
         // 결제 금액 설정
@@ -209,15 +176,9 @@ export function CheckoutForm({
           value: totalAmount,
         });
 
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:191',message:'위젯 인스턴스 설정 완료 - setWidgets 호출 전',data:{totalAmount},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
         console.log('위젯 인스턴스 설정 완료');
         setWidgets(widgetsInstance);
       } catch (error) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:193',message:'토스페이먼츠 초기화 에러',data:{errorMessage:error instanceof Error?error.message:String(error),errorName:error instanceof Error?error.name:'Unknown'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
         console.error('토스페이먼츠 초기화 오류:', error);
         console.error('에러 상세:', {
           message: error instanceof Error ? error.message : String(error),
@@ -231,14 +192,7 @@ export function CheckoutForm({
 
   // 위젯 렌더링
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:205',message:'위젯 렌더링 useEffect 시작',data:{hasWidgets:!!widgets},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    
     if (!widgets) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:206',message:'위젯 인스턴스 없음 - 조기 종료',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       return;
     }
 
@@ -248,17 +202,11 @@ export function CheckoutForm({
         const checkDOM = () => {
           const paymentMethodsEl = document.getElementById('payment-methods');
           const agreementEl = document.getElementById('agreement');
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:212',message:'DOM 요소 확인',data:{hasPaymentMethodsEl:!!paymentMethodsEl,hasAgreementEl:!!agreementEl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
           return paymentMethodsEl && agreementEl;
         };
 
         // DOM이 준비되지 않았다면 잠시 대기
         if (!checkDOM()) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:218',message:'DOM 미준비 - 재시도 예약',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
           setTimeout(() => {
             if (checkDOM()) {
               renderWidgets();
@@ -267,9 +215,6 @@ export function CheckoutForm({
           return;
         }
 
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:225',message:'위젯 렌더링 시작',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
         console.log('토스페이먼츠 위젯 렌더링 시작');
 
         // 결제 수단 위젯 렌더링
@@ -277,10 +222,6 @@ export function CheckoutForm({
           selector: '#payment-methods',
           variantKey: 'DEFAULT',
         });
-
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:232',message:'결제 수단 위젯 렌더링 완료',data:{selector:'#payment-methods'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
         console.log('결제 수단 위젯 렌더링 완료');
 
         // 약관 동의 위젯 렌더링
@@ -288,24 +229,11 @@ export function CheckoutForm({
           selector: '#agreement',
           variantKey: 'AGREEMENT',
         });
-
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:240',message:'약관 동의 위젯 렌더링 완료',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
         console.log('약관 동의 위젯 렌더링 완료');
-
-        // #region agent log
-        const paymentMethodsElAfter = document.getElementById('payment-methods');
-        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:243',message:'렌더링 후 DOM 확인',data:{hasChildren:!!paymentMethodsElAfter?.children.length,childCount:paymentMethodsElAfter?.children.length||0,innerHTMLLength:paymentMethodsElAfter?.innerHTML.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
 
         setIsWidgetReady(true);
       } catch (error) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:247',message:'위젯 렌더링 에러',data:{errorMessage:error instanceof Error?error.message:String(error),errorName:error instanceof Error?error.name:'Unknown'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
         console.error('위젯 렌더링 오류:', error);
-        // 사용자에게 에러 표시
         alert('결제 수단을 불러오는 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
       }
     };
@@ -359,27 +287,27 @@ export function CheckoutForm({
       const orderResponse = await fetch('/api/payments/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            cartItems: cartItems.map(item => ({
-              productId: item.product_id,
-              quantity: item.quantity,
-            })),
-            shippingInfo: {
-              ...shippingInfo,
-              // 주소와 상세 주소를 합쳐서 전송
-              address: `${shippingInfo.address} ${shippingInfo.addressDetail}`.trim(),
-            },
-            totalAmount,
-          }),
+        body: JSON.stringify({
+          cartItems: cartItems.map(item => ({
+            productId: item.product_id,
+            quantity: item.quantity,
+          })),
+          shippingInfo: {
+            ...shippingInfo,
+            // 주소와 상세 주소를 합쳐서 전송
+            address: `${shippingInfo.address} ${shippingInfo.addressDetail}`.trim(),
+          },
+          totalAmount,
+        }),
       });
 
       if (!orderResponse.ok) {
         const error = await orderResponse.json();
         console.error('주문 생성 실패:', error);
-        
+
         // 사용자 친화적 에러 메시지
         let errorMessage = error.message || '주문 생성에 실패했습니다.';
-        
+
         if (orderResponse.status === 400) {
           errorMessage = error.message || '주문 정보를 확인해주세요.';
         } else if (orderResponse.status === 401) {
@@ -387,7 +315,7 @@ export function CheckoutForm({
         } else if (orderResponse.status >= 500) {
           errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -398,36 +326,36 @@ export function CheckoutForm({
       console.log('토스페이먼츠 결제 요청 시작');
       await widgets.requestPayment({
         orderId: orderNumber,
-        orderName: cartItems.length > 1 
+        orderName: cartItems.length > 1
           ? `${cartItems[0].product?.title} 외 ${cartItems.length - 1}건`
           : cartItems[0].product?.title || '상품',
         successUrl: `${window.location.origin}/api/payments/confirm?orderId=${orderId}&paymentKey={paymentKey}&amount=${totalAmount}`,
         failUrl: `${window.location.origin}/checkout/fail?orderId=${orderId}&orderNumber=${encodeURIComponent(orderNumber)}`,
       });
-      
+
       console.log('토스페이먼츠 결제 요청 완료');
       console.groupEnd();
     } catch (error) {
       console.groupEnd();
       console.error('결제 오류:', error);
-      
+
       // 에러 타입별 처리
       let errorMessage = '결제 처리 중 오류가 발생했습니다.';
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
-        
+
         // 네트워크 오류
         if (error.message.includes('fetch') || error.message.includes('network')) {
           errorMessage = '네트워크 오류가 발생했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.';
         }
-        
+
         // 타임아웃 오류
         if (error.message.includes('timeout')) {
           errorMessage = '요청 시간이 초과되었습니다. 다시 시도해주세요.';
         }
       }
-      
+
       // 사용자에게 에러 표시 (alert 대신 더 나은 UI로 개선 가능)
       alert(errorMessage);
     } finally {
@@ -441,7 +369,7 @@ export function CheckoutForm({
       <div className="space-y-6">
         <div className="bg-white rounded-xl border p-6">
           <h2 className="text-lg font-bold mb-4">배송 정보</h2>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="name">받는 분 *</Label>
@@ -522,16 +450,11 @@ export function CheckoutForm({
               <p>결제 수단을 불러오는 중...</p>
             </div>
           )}
-          <div 
-            id="payment-methods" 
+          <div
+            id="payment-methods"
             ref={(el) => {
               paymentMethodsRef.current = el;
-              // #region agent log
-              if (el) {
-                fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:465',message:'payment-methods DOM 요소 ref 설정',data:{hasElement:!!el,childrenCount:el.children.length,innerHTMLLength:el.innerHTML.length,computedDisplay:window.getComputedStyle(el).display,computedVisibility:window.getComputedStyle(el).visibility},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-              }
-              // #endregion
-            }} 
+            }}
           />
         </div>
 
@@ -545,7 +468,7 @@ export function CheckoutForm({
       <div className="space-y-6">
         <div className="bg-white rounded-xl border p-6 sticky top-24">
           <h2 className="text-lg font-bold mb-4">주문 상품</h2>
-          
+
           <div className="space-y-4 max-h-60 overflow-y-auto">
             {cartItems.map((item) => (
               <div key={item.id} className="flex gap-3">

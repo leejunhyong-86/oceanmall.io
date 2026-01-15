@@ -38,9 +38,10 @@ NEXT_PUBLIC_STORAGE_BUCKET=uploads
 ### 토스페이먼츠 결제
 
 ```bash
-# 토스페이먼츠 개발자센터 > 내 개발 정보에서 확인 (https://developers.tosspayments.com)
-NEXT_PUBLIC_TOSS_CLIENT_KEY=test_ck_xxxxx
-TOSS_SECRET_KEY=test_sk_xxxxx
+# 토스페이먼츠 개발자센터 > API 키 > 결제위젯 연동 키에서 확인 (https://developers.tosspayments.com)
+# 결제위젯 연동 키: test_gck_ 또는 live_gck_로 시작
+NEXT_PUBLIC_TOSS_CLIENT_KEY=test_gck_xxxxx
+TOSS_SECRET_KEY=test_gsk_xxxxx
 ```
 
 ---
@@ -70,8 +71,8 @@ TOSS_SECRET_KEY=test_sk_xxxxx
 
 | 변수명 | 필수 | 설명 |
 |--------|------|------|
-| `NEXT_PUBLIC_TOSS_CLIENT_KEY` | ✅ | 토스페이먼츠 클라이언트 키 (결제 위젯용) |
-| `TOSS_SECRET_KEY` | ✅ | 토스페이먼츠 시크릿 키 (결제 승인용, 서버 전용) |
+| `NEXT_PUBLIC_TOSS_CLIENT_KEY` | ✅ | 토스페이먼츠 클라이언트 키 (결제위젯 연동 키: test_gck_ 또는 live_gck_로 시작) |
+| `TOSS_SECRET_KEY` | ✅ | 토스페이먼츠 시크릿 키 (결제위젯 연동 키: test_gsk_ 또는 live_gsk_로 시작, 서버 전용) |
 
 ---
 
