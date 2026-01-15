@@ -1,0 +1,5 @@
+# Amazon 상품 URL 목록
+# 한 줄에 하나씩 URL을 입력하세요
+# 예시: https://www.amazon.com/dp/B0BZYCJK89
+# 
+# 이전에 크롤링했던 URL들을 아래에 입력하세요:

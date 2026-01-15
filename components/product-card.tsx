@@ -23,13 +23,15 @@ interface ProductCardProps {
 export function ProductCard({ product, className }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [hasVideoError, setHasVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
-    if (videoRef.current && product.video_url) {
+    if (videoRef.current && product.video_url && !hasVideoError) {
       videoRef.current.play().catch(() => {
         // 자동 재생 실패 시 무시
+        setHasVideoError(true);
       });
     }
   };
@@ -42,13 +44,13 @@ export function ProductCard({ product, className }: ProductCardProps) {
     }
   };
 
-  // 가격 포맷팅
-  const formatPrice = (price: number | null) => {
-    if (price === null) return '가격 문의';
-    return new Intl.NumberFormat('ko-KR', {
+  // 가격 포맷팅 - USD(달러) 기준
+  const formatPrice = (price: number | null, currency: string = 'USD') => {
+    if (price === null) return 'Price TBD';
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'KRW',
-      maximumFractionDigits: 0,
+      currency: currency,
+      minimumFractionDigits: 2,
     }).format(price);
   };
 
@@ -94,7 +96,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
         )}
 
         {/* 영상 (호버 시 재생) */}
-        {product.video_url && (
+        {product.video_url && !hasVideoError && (
           <video
             ref={videoRef}
             src={product.video_url}
@@ -107,11 +109,16 @@ export function ProductCard({ product, className }: ProductCardProps) {
             playsInline
             preload="metadata"
             onLoadedData={() => setIsVideoLoaded(true)}
+            onError={() => {
+              // 영상 로드 실패 시 에러 상태로 설정
+              setHasVideoError(true);
+              setIsVideoLoaded(false);
+            }}
           />
         )}
 
-        {/* 영상 재생 아이콘 (영상이 있을 때만) */}
-        {product.video_url && !isHovered && (
+        {/* 영상 재생 아이콘 (영상이 있고, 로드되었으며, 에러가 없을 때만) */}
+        {product.video_url && isVideoLoaded && !hasVideoError && !isHovered && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-12 h-12 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center">
               <Play className="w-6 h-6 text-white fill-white" />
@@ -163,10 +170,16 @@ export function ProductCard({ product, className }: ProductCardProps) {
               {product.discount_rate > 0 && (
                 <span className="text-red-500 font-bold text-sm">{product.discount_rate}%</span>
               )}
-              <span className="text-lg font-bold">{formatPrice(product.price_krw)}</span>
-              {product.original_price && product.discount_rate > 0 && (
+              {/* 할인된 가격 표시 (original_price 기준) */}
+              <span className="text-lg font-bold">
+                {product.discount_rate > 0 && product.original_price
+                  ? formatPrice(product.original_price * (1 - product.discount_rate / 100), product.currency)
+                  : formatPrice(product.original_price, product.currency)}
+              </span>
+              {/* 할인 전 원가 (취소선) */}
+              {product.discount_rate > 0 && product.original_price && (
                 <span className="text-sm text-gray-400 line-through">
-                  {formatPrice(product.original_price)}
+                  {formatPrice(product.original_price, product.currency)}
                 </span>
               )}
             </div>

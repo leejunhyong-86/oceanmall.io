@@ -49,50 +49,57 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   };
 
-  // 가격 포맷팅 (개선된 버전)
+  // 가격 포맷팅 - USD 기준으로 표시
   const formatPrice = () => {
-    // 1. KRW 가격이 있고 합리적인 범위 내에 있으면 우선 표시
-    if (product.price_krw !== null && product.price_krw > 0) {
-      // 비정상적으로 큰 가격 체크 (1억원 이상이면 원본 가격 표시)
-      if (product.price_krw < 100000000) {
+    // 원본 가격이 있으면 USD 형식으로 표시
+    if (product.original_price !== null && product.original_price > 0 && product.currency) {
+      // 가격이 비정상적으로 큰 경우 (예: 10000 이상) 체크
+      // Amazon 상품의 경우 일반적으로 $1000 이하이므로, $10000 이상이면 파싱 오류로 간주
+      if (product.original_price > 10000) {
+        // 가격을 100으로 나눠서 소수점 2자리로 표시 (예: 103207 -> 1032.07)
+        const correctedPrice = product.original_price / 100;
         return {
-          main: new Intl.NumberFormat('ko-KR', {
+          main: new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'KRW',
-            maximumFractionDigits: 0,
-          }).format(product.price_krw),
+            currency: product.currency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }).format(correctedPrice),
           sub: null,
         };
       }
-    }
-
-    // 2. 원본 가격이 있으면 환산하여 표시
-    if (product.original_price !== null && product.original_price > 0 && product.currency) {
-      const exchangeRates: Record<string, number> = {
-        USD: 1400,
-        EUR: 1500,
-        JPY: 10,
-        CNY: 200,
-        KRW: 1,
+      
+      // 정상적인 가격 범위
+      return {
+        main: new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: product.currency,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(product.original_price),
+        sub: product.price_krw && product.price_krw < 100000000
+          ? `약 ${new Intl.NumberFormat('ko-KR', {
+              style: 'currency',
+              currency: 'KRW',
+              maximumFractionDigits: 0,
+            }).format(product.price_krw)}`
+          : null,
       };
-      
-      const rate = exchangeRates[product.currency] || 1;
-      const estimatedKRW = Math.round(product.original_price * rate);
-      
-      // 비정상적으로 큰 가격 체크
-      if (estimatedKRW < 100000000) {
-        return {
-          main: `${product.currency} ${product.original_price.toLocaleString()}`,
-          sub: `약 ${new Intl.NumberFormat('ko-KR', {
-            style: 'currency',
-            currency: 'KRW',
-            maximumFractionDigits: 0,
-          }).format(estimatedKRW)}`,
-        };
-      }
     }
 
-    // 3. 둘 다 없거나 비정상적이면 가격 문의
+    // KRW 가격만 있는 경우
+    if (product.price_krw !== null && product.price_krw > 0 && product.price_krw < 100000000) {
+      return {
+        main: new Intl.NumberFormat('ko-KR', {
+          style: 'currency',
+          currency: 'KRW',
+          maximumFractionDigits: 0,
+        }).format(product.price_krw),
+        sub: null,
+      };
+    }
+
+    // 가격 정보가 없거나 비정상적인 경우
     return {
       main: '가격 문의',
       sub: '원본 사이트에서 확인하세요',

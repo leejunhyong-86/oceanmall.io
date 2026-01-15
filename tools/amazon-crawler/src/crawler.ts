@@ -764,21 +764,97 @@ async function extractProductDetails(page: Page, url: string): Promise<AmazonPro
         }
       }
 
-      // 가격 추출
-      var priceEl = document.querySelector('.a-price .a-offscreen') ||
-                    document.querySelector('#priceblock_ourprice') ||
-                    document.querySelector('#priceblock_dealprice') ||
-                    document.querySelector('.a-price-whole');
-      var priceText = priceEl ? priceEl.textContent?.trim() || '' : '';
-      var priceMatch = priceText.match(/[\d,]+\.?\d*/);
-      var price = priceMatch ? parseFloat(priceMatch[0].replace(/,/g, '')) : null;
-
-      // 원래 가격 추출 (할인 전)
-      var originalPriceEl = document.querySelector('.a-text-price .a-offscreen') ||
-                            document.querySelector('.a-price[data-a-strike] .a-offscreen');
-      var originalPriceText = originalPriceEl ? originalPriceEl.textContent?.trim() || '' : '';
-      var originalPriceMatch = originalPriceText.match(/[\d,]+\.?\d*/);
-      var originalPrice = originalPriceMatch ? parseFloat(originalPriceMatch[0].replace(/,/g, '')) : null;
+      // 가격 추출 (개선된 버전 - 더 많은 셀렉터와 방법 시도)
+      // Amazon의 가격 구조: .a-price .a-offscreen에 실제 가격이 있음
+      // 예: "$69.00" 또는 "$33.92"
+      var price = null;
+      var originalPrice = null;
+      
+      // 현재 가격 추출 (정확한 버전 - 우선순위 기반)
+      // Amazon의 가격 구조를 정확히 파악하여 추출
+      var priceSelectors = [
+        { selector: '.a-price .a-offscreen', priority: 1 },  // 가장 정확한 셀렉터 (최우선)
+        { selector: '.priceToPay .a-offscreen', priority: 2 },  // 결제 가격
+        { selector: '#priceblock_ourprice', priority: 3 },
+        { selector: '#priceblock_dealprice', priority: 3 },
+        { selector: '#priceblock_saleprice', priority: 3 },
+        { selector: '[data-a-color="price"] .a-offscreen', priority: 4 },
+      ];
+      
+      // 우선순위가 높은 셀렉터부터 시도
+      priceSelectors.sort(function(a, b) { return a.priority - b.priority; });
+      
+      for (var i = 0; i < priceSelectors.length; i++) {
+        var priceEl = document.querySelector(priceSelectors[i].selector);
+        if (priceEl) {
+          var priceText = priceEl.textContent?.trim() || priceEl.getAttribute('textContent') || '';
+          
+          // 가격 텍스트에서 숫자와 소수점 추출 (예: "$32.90" -> 32.90)
+          // 정규식: $ 기호와 쉼표 제거, 소수점 포함
+          var priceMatch = priceText.match(/\$?\s*([\d,]+\.?\d{2})/);  // 소수점 2자리 강제
+          if (!priceMatch) {
+            priceMatch = priceText.match(/\$?\s*([\d,]+\.?\d*)/);  // 소수점 1자리 또는 없음
+          }
+          
+          if (priceMatch) {
+            var priceStr = priceMatch[1].replace(/,/g, '');
+            var parsedPrice = parseFloat(priceStr);
+            // 가격이 합리적인 범위 내에 있는지 확인 (예: $0.01 ~ $1,000)
+            // Amazon 대부분의 상품은 $1,000 이하
+            if (parsedPrice > 0 && parsedPrice <= 1000) {
+              price = parsedPrice;
+              break;  // 첫 번째 유효한 가격을 찾으면 중단
+            }
+          }
+        }
+      }
+      
+      // 위 방법으로 가격을 찾지 못한 경우: .a-price-whole과 .a-price-fraction 조합 시도
+      if (!price) {
+        var priceContainer = document.querySelector('.a-price');
+        if (priceContainer) {
+          var priceWholeEl = priceContainer.querySelector('.a-price-whole');
+          var priceFractionEl = priceContainer.querySelector('.a-price-fraction');
+          if (priceWholeEl && priceFractionEl) {
+            var wholeText = priceWholeEl.textContent?.trim() || '';
+            var fractionText = priceFractionEl.textContent?.trim() || '';
+            var wholeMatch = wholeText.match(/([\d,]+)/);
+            var fractionMatch = fractionText.match(/(\d{1,2})/);  // 소수점은 최대 2자리
+            if (wholeMatch && fractionMatch) {
+              var whole = parseFloat(wholeMatch[1].replace(/,/g, ''));
+              var fraction = parseFloat(fractionMatch[1]);
+              // 소수점이 1자리인 경우 (예: 32.9)와 2자리인 경우 (예: 32.90) 처리
+              var combinedPrice = whole + (fraction / Math.pow(10, fractionMatch[1].length));
+              if (combinedPrice > 0 && combinedPrice <= 1000) {
+                price = combinedPrice;
+              }
+            }
+          }
+        }
+      }
+      
+      // 원래 가격 추출 (할인 전 가격)
+      var originalPriceSelectors = [
+        '.a-text-price .a-offscreen',
+        '.a-price[data-a-strike] .a-offscreen',
+        '.a-price.a-text-price .a-offscreen',
+      ];
+      
+      for (var j = 0; j < originalPriceSelectors.length; j++) {
+        var originalPriceEl = document.querySelector(originalPriceSelectors[j]);
+        if (originalPriceEl) {
+          var originalPriceText = originalPriceEl.textContent?.trim() || originalPriceEl.getAttribute('textContent') || '';
+          var originalPriceMatch = originalPriceText.match(/\$?\s*([\d,]+\.?\d*)/);
+          if (originalPriceMatch) {
+            var originalPriceStr = originalPriceMatch[1].replace(/,/g, '');
+            var parsedOriginalPrice = parseFloat(originalPriceStr);
+            if (parsedOriginalPrice > 0 && parsedOriginalPrice <= 10000) {
+              originalPrice = parsedOriginalPrice;
+              break;
+            }
+          }
+        }
+      }
 
       // 평점 추출
       var ratingEl = document.querySelector('#acrPopover') ||
@@ -991,9 +1067,44 @@ async function extractProductDetails(page: Page, url: string): Promise<AmazonPro
       var brandEl = document.querySelector('#bylineInfo') || document.querySelector('.po-brand .po-break-word');
       var brand = brandEl ? brandEl.textContent?.replace('Visit the', '').replace('Store', '').trim() || null : null;
 
-      // 카테고리 추출
-      var categoryEl = document.querySelector('#wayfinding-breadcrumbs_feature_div a');
-      var category = categoryEl ? categoryEl.textContent?.trim() || '' : '';
+      // 카테고리 추출 (개선된 버전 - 여러 셀렉터 시도)
+      var category = '';
+      var categorySelectors = [
+        '#wayfinding-breadcrumbs_feature_div a',  // 기본 셀렉터
+        '.a-breadcrumb a',  // 대체 셀렉터
+        '[data-testid="breadcrumb"] a',  // 테스트 ID 기반
+        'nav[aria-label="Breadcrumb"] a',  // ARIA 레이블 기반
+      ];
+      
+      for (var catIdx = 0; catIdx < categorySelectors.length; catIdx++) {
+        var categoryEls = document.querySelectorAll(categorySelectors[catIdx]);
+        // 브레드크럼에서 마지막에서 두 번째 항목이 일반적으로 카테고리 (마지막은 상품명)
+        if (categoryEls.length >= 2) {
+          var categoryEl = categoryEls[categoryEls.length - 2];
+          category = categoryEl ? categoryEl.textContent?.trim() || '' : '';
+          if (category && category.length > 0) {
+            break;
+          }
+        }
+      }
+      
+      // 카테고리를 찾지 못한 경우, 모든 브레드크럼 링크를 확인
+      if (!category || category.length === 0) {
+        var allBreadcrumbs = document.querySelectorAll('#wayfinding-breadcrumbs_feature_div a, .a-breadcrumb a');
+        if (allBreadcrumbs.length >= 2) {
+          // "Home"이나 "All" 같은 항목을 제외하고 실제 카테고리 찾기
+          for (var bcIdx = 1; bcIdx < allBreadcrumbs.length - 1; bcIdx++) {
+            var bcText = allBreadcrumbs[bcIdx].textContent?.trim() || '';
+            if (bcText && 
+                !bcText.toLowerCase().includes('home') && 
+                !bcText.toLowerCase().includes('all') &&
+                !bcText.toLowerCase().includes('departments')) {
+              category = bcText;
+              break;
+            }
+          }
+        }
+      }
 
       // Prime 여부
       var isPrime = !!document.querySelector('.a-icon-prime, #primeExclusiveBadge');
@@ -1115,6 +1226,146 @@ async function extractProductDetails(page: Page, url: string): Promise<AmazonPro
 }
 
 /**
+ * Amazon 카테고리를 데이터베이스 카테고리 ID로 매칭
+ */
+async function findCategoryId(
+  supabase: SupabaseClient,
+  amazonCategory: string,
+  productTitle: string
+): Promise<string | null> {
+  if (!amazonCategory && !productTitle) return null;
+
+  // Amazon 카테고리 텍스트를 정규화
+  const normalizedCategory = amazonCategory.toLowerCase().trim();
+  const normalizedTitle = productTitle.toLowerCase();
+
+  // 카테고리 매핑 (Amazon 카테고리 -> DB 카테고리 slug)
+  const categoryMapping: Record<string, string> = {
+    // Beauty 관련
+    'beauty': 'beauty',
+    'beauty & personal care': 'beauty',
+    'personal care': 'beauty',
+    'skincare': 'beauty',
+    'makeup': 'beauty',
+    'cosmetics': 'beauty',
+    'serum': 'beauty',
+    'skincare serum': 'beauty',
+    
+    // Electronics 관련
+    'electronics': 'electronics',
+    'computers': 'electronics',
+    'cell phones': 'electronics',
+    'audio': 'electronics',
+    'headphones': 'electronics',
+    
+    // Home & Kitchen 관련
+    'home & kitchen': 'kitchen',
+    'kitchen': 'kitchen',
+    'home improvement': 'home',
+    'bedding': 'home',
+    'mattress': 'home',
+    'mattress pad': 'home',
+    'home': 'home',
+    
+    // Sports 관련
+    'sports & outdoors': 'sports',
+    'sports': 'sports',
+    'outdoors': 'sports',
+    'fitness': 'sports',
+    'exercise': 'sports',
+    
+    // Fashion 관련
+    'clothing': 'fashion',
+    'shoes': 'fashion',
+    'fashion': 'fashion',
+    'apparel': 'fashion',
+    
+    // Health 관련
+    'health & household': 'health',
+    'health': 'health',
+    'supplements': 'health',
+    'vitamins': 'health',
+    'probiotics': 'health',
+    'digestive supplements': 'health',
+    
+    // Baby 관련
+    'baby': 'baby',
+    'baby products': 'baby',
+    'toys': 'baby',
+  };
+
+  // 1. Amazon 카테고리로 직접 매칭
+  let matchedSlug: string | null = null;
+  for (const [amazonCat, dbSlug] of Object.entries(categoryMapping)) {
+    if (normalizedCategory.includes(amazonCat) || amazonCat.includes(normalizedCategory)) {
+      matchedSlug = dbSlug;
+      break;
+    }
+  }
+
+  // 2. 제목에서 키워드로 추론
+  if (!matchedSlug) {
+    const titleKeywords: Array<{ keywords: string[]; slug: string }> = [
+      // Beauty
+      { keywords: ['serum', '세럼', 'skincare', '스킨케어', 'cosmetic', '화장품', 'makeup', '메이크업'], slug: 'beauty' },
+      { keywords: ['cream', '크림', 'moisturizer', '보습', 'cleanser', '클렌저'], slug: 'beauty' },
+      { keywords: ['toner', '토너', 'essence', '에센스', 'ampoule', '앰플'], slug: 'beauty' },
+      { keywords: ['mask', '마스크', 'patch', '패치'], slug: 'beauty' },
+      
+      // Electronics
+      { keywords: ['phone', '폰', 'headphone', '헤드폰', 'earbud', '이어폰'], slug: 'electronics' },
+      { keywords: ['tablet', '태블릿', 'laptop', '랩톱', 'watch', '워치'], slug: 'electronics' },
+      { keywords: ['camera', '카메라', 'computer', '컴퓨터'], slug: 'electronics' },
+      
+      // Kitchen/Home
+      { keywords: ['coffee maker', 'coffee', '커피', '커피메이커', 'keurig'], slug: 'kitchen' },
+      { keywords: ['kitchen', '주방', 'cookware', '조리도구'], slug: 'kitchen' },
+      
+      // Home/Interior
+      { keywords: ['mattress', '매트리스', 'bedding', '침구', 'pillow', '베개'], slug: 'home' },
+      
+      // Sports
+      { keywords: ['water bottle', '물병', 'bottle', '보틀', 'sports bottle'], slug: 'sports' },
+      { keywords: ['fitness', '피트니스', 'exercise', '운동', 'workout'], slug: 'sports' },
+      { keywords: ['gym', '헬스', 'running', '러닝', 'yoga', '요가'], slug: 'sports' },
+      
+      // Health
+      { keywords: ['vitamin', '비타민', 'supplement', '영양제', 'protein', '프로틴'], slug: 'health' },
+      { keywords: ['probiotic', '프로바이오틱스', 'prebiotic', '프리바이오틱스'], slug: 'health' },
+      { keywords: ['nutrition', '영양', 'diet', '다이어트'], slug: 'health' },
+    ];
+
+    // 각 카테고리 그룹의 키워드 중 하나라도 매칭되면 해당 카테고리 할당
+    for (var kwIdx = 0; kwIdx < titleKeywords.length; kwIdx++) {
+      var keywordGroup = titleKeywords[kwIdx];
+      for (var kIdx = 0; kIdx < keywordGroup.keywords.length; kIdx++) {
+        if (normalizedTitle.includes(keywordGroup.keywords[kIdx])) {
+          matchedSlug = keywordGroup.slug;
+          break;
+        }
+      }
+      if (matchedSlug) break;
+    }
+  }
+
+  // 3. 매칭된 slug로 카테고리 ID 조회
+  if (matchedSlug) {
+    const { data: category } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', matchedSlug)
+      .eq('is_active', true)
+      .single();
+
+    if (category) {
+      return category.id;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Supabase에 상품 저장
  */
 async function saveToSupabase(
@@ -1122,6 +1373,9 @@ async function saveToSupabase(
   product: AmazonProduct
 ): Promise<boolean> {
   try {
+    // 카테고리 ID 찾기
+    const categoryId = await findCategoryId(supabase, product.category || '', product.title);
+
     const productInsert: ProductInsert = {
       title: product.title,
       slug: product.slug,
@@ -1138,7 +1392,7 @@ async function saveToSupabase(
       tags: product.category ? [product.category, product.brand || ''].filter(Boolean) : [],
       is_featured: product.rating >= 4.5 && product.reviewCount >= 1000,
       is_active: true,
-      category_id: null,
+      category_id: categoryId,
       detail_images: product.detailImages.length > 0 ? product.detailImages : undefined,
     };
 
@@ -1179,6 +1433,62 @@ async function saveToSupabase(
         console.error(`   ⚠️ 리뷰 저장 실패:`, reviewsError.message);
       } else {
         console.log(`   ✅ ${product.reviews.length}개의 리뷰 저장 완료`);
+        
+        // 리뷰가 저장된 후 AI 요약 생성 (동적 import 사용)
+        if (product.reviews.length > 0 && process.env.AUTO_GENERATE_AI_SUMMARY !== 'false') {
+          try {
+            console.log(`   🤖 AI 리뷰 요약 생성 중...`);
+            
+            // 동적 import로 AI 서비스 로드 (크롤러 디렉토리에서 프로젝트 루트로 접근)
+            // tsx로 실행 시 .ts 파일 직접 import 가능
+            const { createAIService } = await import('../../../lib/ai/index.js');
+            const aiService = createAIService();
+            const allReviews = product.reviews.map(r => ({
+              content: r.content,
+              rating: r.rating ?? undefined,
+              language: 'en',
+            }));
+            
+            const result = await aiService.summarizeReviews({
+              productName: product.title,
+              reviews: allReviews,
+            });
+            
+            // AI 요약을 Supabase에 저장
+            const expiresAt = new Date();
+            expiresAt.setHours(expiresAt.getHours() + 24); // 24시간 후 만료
+            
+            const { error: summaryError } = await supabase
+              .from('ai_summaries')
+              .upsert({
+                product_id: data.id,
+                summary: result.summary,
+                positive_points: result.positivePoints,
+                negative_points: result.negativePoints,
+                recommendation: result.recommendation,
+                overall_rating: result.overallRating,
+                sentiment_score: result.sentimentScore,
+                ai_provider: aiService.provider,
+                ai_model: process.env.AI_MODEL || 'mock',
+                review_count: allReviews.length,
+                is_outdated: false,
+                expires_at: expiresAt.toISOString(),
+                generated_at: new Date().toISOString(),
+              }, {
+                onConflict: 'product_id',
+              });
+            
+            if (summaryError) {
+              console.error(`   ⚠️ AI 요약 저장 실패:`, summaryError.message);
+            } else {
+              console.log(`   ✅ AI 리뷰 요약 생성 및 저장 완료`);
+            }
+          } catch (aiError) {
+            console.error(`   ⚠️ AI 요약 생성 실패:`, aiError instanceof Error ? aiError.message : aiError);
+            console.log(`   💡 AI 요약은 나중에 수동으로 생성할 수 있습니다.`);
+            // AI 요약 실패해도 상품 저장은 성공으로 처리
+          }
+        }
       }
     }
     

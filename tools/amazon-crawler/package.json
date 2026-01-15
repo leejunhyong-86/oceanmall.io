@@ -6,6 +6,7 @@
   "scripts": {
     "crawl": "tsx src/crawler.ts",
     "crawl:dev": "tsx watch src/crawler.ts",
+    "crawl:urls": "tsx src/crawl-urls.ts",
     "test": "tsx src/test-connection.ts"
   },
   "dependencies": {
