@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Star,
   Plus,
+  ShoppingBag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -170,6 +171,21 @@ export default async function AdminPage() {
               </Link>
             </div>
           </div>
+        </div>
+
+        {/* 주문 관리 */}
+        <div className="mt-6 bg-white rounded-xl border p-6">
+          <h2 className="text-lg font-semibold mb-4">주문 관리</h2>
+          <Link
+            href="/admin/orders"
+            className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <ShoppingBag className="w-5 h-5 text-gray-500" />
+              <span>주문 목록 보기</span>
+            </div>
+            <span className="text-gray-400">→</span>
+          </Link>
         </div>
 
         {/* 안내 메시지 */}

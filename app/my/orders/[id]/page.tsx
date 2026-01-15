@@ -9,8 +9,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Package, MapPin, Phone, User, FileText } from 'lucide-react';
 import { getOrderDetail } from '@/actions/orders';
+import { getRefundableAmount } from '@/actions/payments';
 import { Button } from '@/components/ui/button';
 import { CancelOrderButton } from '@/components/orders/cancel-order-button';
+import { PaymentDetails } from '@/components/orders/payment-details';
+import { RefundButton } from '@/components/orders/refund-button';
 import type { OrderStatus } from '@/types';
 
 interface OrderDetailPageProps {
@@ -56,6 +59,9 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   if (!order) {
     notFound();
   }
+
+  // 환불 가능 금액 조회
+  const refundableAmount = await getRefundableAmount(order.id);
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat('ko-KR').format(value) + '원';
@@ -189,7 +195,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
         </div>
 
         {/* 결제 정보 */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-6 mb-4">
           <h2 className="font-bold mb-4">결제 정보</h2>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
@@ -200,8 +206,19 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               <span className="text-gray-500">배송비</span>
               <span>{shippingFee === 0 ? '무료' : formatPrice(shippingFee)}</span>
             </div>
+            {order.cancelled_amount > 0 && (
+              <div className="flex justify-between text-red-600">
+                <span className="text-gray-500">취소된 금액</span>
+                <span>-{formatPrice(order.cancelled_amount)}</span>
+              </div>
+            )}
+            <hr className="my-2" />
+            <div className="flex justify-between text-base font-bold">
+              <span>총 결제 금액</span>
+              <span className="text-purple-600">{formatPrice(order.total_amount)}</span>
+            </div>
             {order.payment_method && (
-              <div className="flex justify-between">
+              <div className="flex justify-between mt-2 pt-2 border-t">
                 <span className="text-gray-500">결제 수단</span>
                 <span>{order.payment_method}</span>
               </div>
@@ -212,13 +229,20 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                 <span>{formatDate(order.paid_at)}</span>
               </div>
             )}
-            <hr className="my-2" />
-            <div className="flex justify-between text-base font-bold">
-              <span>총 결제 금액</span>
-              <span className="text-purple-600">{formatPrice(order.total_amount)}</span>
-            </div>
           </div>
         </div>
+
+        {/* 결제 상세 정보 및 환불 */}
+        {order.payment_key && (
+          <PaymentDetails order={order} />
+        )}
+
+        {/* 환불 버튼 (결제 완료된 주문만) */}
+        {order.status === 'paid' && refundableAmount > 0 && (
+          <div className="bg-white rounded-xl border p-6">
+            <RefundButton order={order} refundableAmount={refundableAmount} />
+          </div>
+        )}
       </div>
     </main>
   );

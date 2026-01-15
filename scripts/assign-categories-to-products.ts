@@ -49,6 +49,9 @@ function findCategoryId(amazonCategory: string, productTitle: string, tags: stri
     'cell phones': 'electronics',
     'audio': 'electronics',
     'headphones': 'electronics',
+    'graphics cards': 'electronics',
+    'video cards': 'electronics',
+    'gpu': 'electronics',
     'home & kitchen': 'kitchen',
     'kitchen': 'kitchen',
     'home improvement': 'home',
@@ -65,6 +68,9 @@ function findCategoryId(amazonCategory: string, productTitle: string, tags: stri
     'shoes': 'fashion',
     'fashion': 'fashion',
     'apparel': 'fashion',
+    'pants': 'fashion',
+    'tactical': 'fashion',
+    'cargo': 'fashion',
     'health & household': 'health',
     'health': 'health',
     'supplements': 'health',
@@ -108,6 +114,7 @@ function findCategoryId(amazonCategory: string, productTitle: string, tags: stri
       { keywords: ['phone', '폰', 'headphone', '헤드폰', 'earbud', '이어폰'], slug: 'electronics' },
       { keywords: ['tablet', '태블릿', 'laptop', '랩톱', 'watch', '워치'], slug: 'electronics' },
       { keywords: ['camera', '카메라', 'computer', '컴퓨터'], slug: 'electronics' },
+      { keywords: ['graphics card', '그래픽 카드', 'gpu', 'geforce', 'rtx', 'radeon'], slug: 'electronics' },
       
       // Kitchen/Home
       { keywords: ['coffee maker', 'coffee', '커피', '커피메이커', 'keurig'], slug: 'kitchen' },
@@ -125,6 +132,11 @@ function findCategoryId(amazonCategory: string, productTitle: string, tags: stri
       { keywords: ['vitamin', '비타민', 'supplement', '영양제', 'protein', '프로틴'], slug: 'health' },
       { keywords: ['probiotic', '프로바이오틱스', 'prebiotic', '프리바이오틱스'], slug: 'health' },
       { keywords: ['nutrition', '영양', 'diet', '다이어트'], slug: 'health' },
+      
+      // Fashion
+      { keywords: ['pants', '바지', '팬츠', 'tactical', '전술', 'cargo', '카고'], slug: 'fashion' },
+      { keywords: ['clothing', '의류', 'shoes', '신발', 'bag', '가방'], slug: 'fashion' },
+      { keywords: ['slipper', '슬리퍼', 'moccasin', '모카신', 'house shoes', '하우스 슈즈'], slug: 'fashion' },
     ];
 
     // 각 카테고리 그룹의 키워드 중 하나라도 매칭되면 해당 카테고리 할당

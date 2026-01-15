@@ -440,6 +440,10 @@ export interface Order {
   payment_method: string | null;
   paid_at: Timestamp | null;
   
+  // 환불/취소 정보
+  balance_amount: number;
+  cancelled_amount: number;
+  
   // 타임스탬프
   created_at: Timestamp;
   updated_at: Timestamp;
@@ -464,6 +468,8 @@ export interface OrderUpdate {
   payment_key?: string | null;
   payment_method?: string | null;
   paid_at?: Timestamp | null;
+  balance_amount?: number;
+  cancelled_amount?: number;
 }
 
 // ============================================
@@ -495,3 +501,35 @@ export interface OrderWithItems extends Order {
   items: OrderItem[];
 }
 
+// ============================================
+// Payment Cancels (결제 취소 내역)
+// ============================================
+
+export type CancelStatus = 'DONE' | 'PENDING' | 'FAILED';
+
+export interface PaymentCancel {
+  id: UUID;
+  order_id: UUID;
+  transaction_key: string;
+  cancel_amount: number;
+  cancel_reason: string;
+  cancel_status: CancelStatus;
+  refundable_amount: number;
+  canceled_at: Timestamp | null;
+  created_at: Timestamp;
+}
+
+export interface PaymentCancelInsert {
+  order_id: UUID;
+  transaction_key: string;
+  cancel_amount: number;
+  cancel_reason: string;
+  cancel_status: CancelStatus;
+  refundable_amount?: number;
+  canceled_at?: Timestamp | null;
+}
+
+// 확장된 취소 타입 (주문 정보 포함)
+export interface PaymentCancelWithOrder extends PaymentCancel {
+  order: Order;
+}

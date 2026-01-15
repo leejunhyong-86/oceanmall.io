@@ -127,6 +127,8 @@ export async function POST(request: Request) {
         order_number: orderNumber,
         status: 'pending',
         total_amount: totalAmount,
+        balance_amount: totalAmount, // 초기 잔액 = 총 결제 금액
+        cancelled_amount: 0, // 초기 취소 금액 = 0
         shipping_name: shippingInfo.name,
         shipping_phone: shippingInfo.phone,
         shipping_address: shippingInfo.address,

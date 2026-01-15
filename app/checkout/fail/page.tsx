@@ -6,6 +6,7 @@
 import Link from 'next/link';
 import { XCircle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PaymentRetry } from '@/components/checkout/payment-retry';
 
 export const metadata = {
   title: '결제 실패 | 오션몰',
@@ -16,11 +17,13 @@ interface FailPageProps {
   searchParams: Promise<{
     code?: string;
     message?: string;
+    orderId?: string;
+    orderNumber?: string;
   }>;
 }
 
 export default async function CheckoutFailPage({ searchParams }: FailPageProps) {
-  const { code, message } = await searchParams;
+  const { code, message, orderId, orderNumber } = await searchParams;
 
   const errorMessage = message || '결제 처리 중 문제가 발생했습니다.';
 
@@ -43,14 +46,28 @@ export default async function CheckoutFailPage({ searchParams }: FailPageProps) 
             </div>
           )}
 
+          {/* 재시도 컴포넌트 (주문 정보가 있는 경우) */}
+          {orderId && orderNumber ? (
+            <div className="mb-6">
+              <PaymentRetry
+                orderId={orderId}
+                orderNumber={orderNumber}
+                errorCode={code}
+                errorMessage={message}
+              />
+            </div>
+          ) : (
+            <div className="space-y-3 mb-6">
+              <Link href="/checkout" className="block">
+                <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  다시 시도하기
+                </Button>
+              </Link>
+            </div>
+          )}
+          
           <div className="space-y-3">
-            <Link href="/checkout" className="block">
-              <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                다시 시도하기
-              </Button>
-            </Link>
-            
             <Link href="/cart" className="block">
               <Button variant="outline" className="w-full">
                 장바구니로 돌아가기
