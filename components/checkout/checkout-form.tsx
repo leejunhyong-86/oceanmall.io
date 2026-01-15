@@ -146,29 +146,55 @@ export function CheckoutForm({
   useEffect(() => {
     const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
     
+    console.log('토스페이먼츠 클라이언트 키 확인:', {
+      hasKey: !!clientKey,
+      keyPrefix: clientKey?.substring(0, 8),
+      keyLength: clientKey?.length,
+    });
+    
     if (!clientKey) {
       console.error('토스페이먼츠 클라이언트 키가 설정되지 않았습니다.');
       return;
     }
 
+    // 키 앞뒤 공백 제거
+    const trimmedKey = clientKey.trim();
+    
+    if (!trimmedKey.startsWith('test_gck_') && !trimmedKey.startsWith('live_gck_')) {
+      console.warn('클라이언트 키 형식 확인:', {
+        key: trimmedKey.substring(0, 20) + '...',
+        startsWithGck: trimmedKey.startsWith('test_gck_') || trimmedKey.startsWith('live_gck_'),
+      });
+    }
+
     const initTossPayments = async () => {
       try {
-        const tossPayments = await loadTossPayments(clientKey);
+        console.log('토스페이먼츠 SDK 로드 시작...');
+        const tossPayments = await loadTossPayments(trimmedKey);
+        console.log('토스페이먼츠 SDK 로드 완료');
+        
         const customerKey = `customer_${Date.now()}`; // 고유 고객 키
+        console.log('위젯 인스턴스 생성 중...', { customerKey });
         
         const widgetsInstance = tossPayments.widgets({
           customerKey,
         });
 
+        console.log('결제 금액 설정 중...', { totalAmount });
         // 결제 금액 설정
         await widgetsInstance.setAmount({
           currency: 'KRW',
           value: totalAmount,
         });
 
+        console.log('위젯 인스턴스 설정 완료');
         setWidgets(widgetsInstance);
       } catch (error) {
         console.error('토스페이먼츠 초기화 오류:', error);
+        console.error('에러 상세:', {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
       }
     };
 
@@ -177,15 +203,36 @@ export function CheckoutForm({
 
   // 위젯 렌더링
   useEffect(() => {
-    if (!widgets || !paymentMethodsRef.current || !agreementRef.current) return;
+    if (!widgets) return;
 
     const renderWidgets = async () => {
       try {
+        // DOM이 준비될 때까지 대기
+        const checkDOM = () => {
+          const paymentMethodsEl = document.getElementById('payment-methods');
+          const agreementEl = document.getElementById('agreement');
+          return paymentMethodsEl && agreementEl;
+        };
+
+        // DOM이 준비되지 않았다면 잠시 대기
+        if (!checkDOM()) {
+          setTimeout(() => {
+            if (checkDOM()) {
+              renderWidgets();
+            }
+          }, 100);
+          return;
+        }
+
+        console.log('토스페이먼츠 위젯 렌더링 시작');
+
         // 결제 수단 위젯 렌더링
         await widgets.renderPaymentMethods({
           selector: '#payment-methods',
           variantKey: 'DEFAULT',
         });
+
+        console.log('결제 수단 위젯 렌더링 완료');
 
         // 약관 동의 위젯 렌더링
         await widgets.renderAgreement({
@@ -193,13 +240,22 @@ export function CheckoutForm({
           variantKey: 'AGREEMENT',
         });
 
+        console.log('약관 동의 위젯 렌더링 완료');
+
         setIsWidgetReady(true);
       } catch (error) {
         console.error('위젯 렌더링 오류:', error);
+        // 사용자에게 에러 표시
+        alert('결제 수단을 불러오는 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
       }
     };
 
-    renderWidgets();
+    // DOM이 준비될 때까지 약간의 지연
+    const timer = setTimeout(() => {
+      renderWidgets();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [widgets]);
 
   const handleInputChange = (field: keyof ShippingInfo, value: string) => {
@@ -401,6 +457,11 @@ export function CheckoutForm({
         {/* 결제 수단 */}
         <div className="bg-white rounded-xl border p-6">
           <h2 className="text-lg font-bold mb-4">결제 수단</h2>
+          {!isWidgetReady && (
+            <div className="py-8 text-center text-gray-500">
+              <p>결제 수단을 불러오는 중...</p>
+            </div>
+          )}
           <div id="payment-methods" ref={paymentMethodsRef} />
         </div>
 
