@@ -14,7 +14,8 @@ import {
   Heart, 
   ExternalLink,
   Share2,
-  ChevronLeft 
+  ChevronLeft,
+  ShoppingBag
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { toggleWishlist, isInWishlist } from '@/actions/wishlists';
@@ -226,53 +227,71 @@ export function ProductDetail({ product }: ProductDetailProps) {
           )}
 
           {/* 액션 버튼 */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            {/* 직접 구매 가능하면 장바구니 버튼, 아니면 외부 링크 버튼 */}
-            <AddToCartButton
-              productId={product.id}
-              priceKrw={product.price_krw}
-              sourceUrl={product.source_url}
-              className="flex-1"
-            />
+          <div className="space-y-3 pt-4">
+            {/* 메인 액션 버튼들 */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* 직접 구매 가능하면 장바구니 버튼, 아니면 외부 링크 버튼 */}
+              <AddToCartButton
+                productId={product.id}
+                priceKrw={product.price_krw}
+                sourceUrl={product.source_url}
+                className="flex-1"
+              />
 
-            {/* 직접 구매 가능해도 외부 링크 제공 */}
+              {/* 직접 구매 가능해도 외부 링크 제공 */}
+              {product.price_krw && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                >
+                  <a
+                    href={product.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="w-5 h-5 mr-2" />
+                    {getPlatformLabel(product.source_platform)}
+                  </a>
+                </Button>
+              )}
+
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleWishlistToggle}
+                disabled={isLoadingWishlist}
+                className={cn(
+                  isWishlisted && 'border-red-200 bg-red-50'
+                )}
+              >
+                <Heart
+                  className={cn(
+                    'w-5 h-5',
+                    isWishlisted ? 'fill-red-500 text-red-500' : ''
+                  )}
+                />
+              </Button>
+
+              <Button variant="outline" size="lg">
+                <Share2 className="w-5 h-5" />
+              </Button>
+            </div>
+
+            {/* 장바구니 바로가기 버튼 */}
             {product.price_krw && (
               <Button
                 asChild
                 variant="outline"
                 size="lg"
+                className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
               >
-                <a
-                  href={product.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="w-5 h-5 mr-2" />
-                  {getPlatformLabel(product.source_platform)}
-                </a>
+                <Link href="/cart">
+                  <ShoppingBag className="w-5 h-5 mr-2" />
+                  장바구니 보기
+                </Link>
               </Button>
             )}
-
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleWishlistToggle}
-              disabled={isLoadingWishlist}
-              className={cn(
-                isWishlisted && 'border-red-200 bg-red-50'
-              )}
-            >
-              <Heart
-                className={cn(
-                  'w-5 h-5',
-                  isWishlisted ? 'fill-red-500 text-red-500' : ''
-                )}
-              />
-            </Button>
-
-            <Button variant="outline" size="lg">
-              <Share2 className="w-5 h-5" />
-            </Button>
           </div>
 
           {/* 조회수 */}
