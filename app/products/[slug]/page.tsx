@@ -117,7 +117,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   }
 
   return {
-    title: `${product.title} | 해외직구멀티샵`,
+    title: `${product.title} | 오션몰`,
     description: product.description || `${product.title}의 AI 리뷰 요약과 상세 정보를 확인하세요.`,
     openGraph: {
       title: product.title,

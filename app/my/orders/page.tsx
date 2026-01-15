@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import type { OrderStatus } from '@/types';
 
 export const metadata = {
-  title: '주문 내역 | 해외직구멀티샵',
+  title: '주문 내역 | 오션몰',
   description: '주문 내역을 확인하세요.',
 };
 

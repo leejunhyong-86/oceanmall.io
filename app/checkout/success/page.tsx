@@ -8,7 +8,7 @@ import { CheckCircle, Package, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: '결제 완료 | 해외직구멀티샵',
+  title: '결제 완료 | 오션몰',
   description: '결제가 성공적으로 완료되었습니다.',
 };
 

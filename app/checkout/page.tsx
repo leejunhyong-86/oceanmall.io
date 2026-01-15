@@ -11,7 +11,7 @@ import { getCartItems } from '@/actions/cart';
 import { CheckoutForm } from '@/components/checkout/checkout-form';
 
 export const metadata = {
-  title: '결제하기 | 해외직구멀티샵',
+  title: '결제하기 | 오션몰',
   description: '주문 정보를 확인하고 결제를 진행하세요.',
 };
 

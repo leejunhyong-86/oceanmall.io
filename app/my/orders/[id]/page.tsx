@@ -38,7 +38,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
 export async function generateMetadata({ params }: OrderDetailPageProps) {
   const { id } = await params;
   return {
-    title: `주문 상세 | 해외직구멀티샵`,
+    title: `주문 상세 | 오션몰`,
     description: '주문 상세 정보를 확인하세요.',
   };
 }

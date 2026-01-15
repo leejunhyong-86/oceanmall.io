@@ -8,7 +8,7 @@ import { XCircle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: '결제 실패 | 해외직구멀티샵',
+  title: '결제 실패 | 오션몰',
   description: '결제 처리 중 문제가 발생했습니다.',
 };
 

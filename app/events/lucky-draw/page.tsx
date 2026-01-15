@@ -21,7 +21,7 @@ import { getActiveLuckyDrawEvent } from '@/actions/lucky-draw';
 import { Gift, ArrowLeft, Clock, Users, Award } from 'lucide-react';
 
 export const metadata = {
-  title: '럭키드로우 | 해외직구멀티샵',
+  title: '럭키드로우 | 오션몰',
   description: '바다 건너 온 특별한 경품! 럭키드로우에 참여하세요.',
 };
 
@@ -120,7 +120,7 @@ export default async function LuckyDrawPage() {
                     </span>
                     <div>
                       <p className="font-semibold text-gray-900">회원 가입 또는 로그인</p>
-                      <p className="text-gray-600 text-sm">해외직구멀티샵 회원만 참여 가능합니다</p>
+                      <p className="text-gray-600 text-sm">오션몰 회원만 참여 가능합니다</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-4">

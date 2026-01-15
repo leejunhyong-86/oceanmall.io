@@ -155,8 +155,8 @@ export async function generateMetadata({ searchParams }: ProductsPageProps) {
   }
 
   return {
-    title: `${title} | 해외직구멀티샵`,
-    description: `해외직구멀티샵에서 ${title}을 확인하세요. AI 리뷰 요약으로 빠른 구매 결정을 도와드립니다.`,
+    title: `${title} | 오션몰`,
+    description: `오션몰에서 ${title}을 확인하세요. AI 리뷰 요약으로 빠른 구매 결정을 도와드립니다.`,
   };
 }
 

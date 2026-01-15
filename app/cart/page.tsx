@@ -16,7 +16,7 @@ import { CartSummary } from '@/components/cart/cart-summary';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: '장바구니 | 해외직구멀티샵',
+  title: '장바구니 | 오션몰',
   description: '장바구니에 담긴 상품을 확인하고 결제하세요.',
 };
 

@@ -26,7 +26,7 @@ const Navbar = () => {
         <Link href="/" className="flex items-center gap-2">
           <span className="text-2xl">🛒</span>
           <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-            해외직구멀티샵
+            오션몰
           </span>
         </Link>
 
