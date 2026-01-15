@@ -146,6 +146,10 @@ export function CheckoutForm({
   useEffect(() => {
     const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
     
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:147',message:'환경 변수 확인 시작',data:{hasKey:!!clientKey,keyPrefix:clientKey?.substring(0,8),keyLength:clientKey?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
     console.log('토스페이먼츠 클라이언트 키 확인:', {
       hasKey: !!clientKey,
       keyPrefix: clientKey?.substring(0, 8),
@@ -153,6 +157,9 @@ export function CheckoutForm({
     });
     
     if (!clientKey) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:156',message:'클라이언트 키 없음 - 조기 종료',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       console.error('토스페이먼츠 클라이언트 키가 설정되지 않았습니다.');
       return;
     }
@@ -169,16 +176,31 @@ export function CheckoutForm({
 
     const initTossPayments = async () => {
       try {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:172',message:'SDK 로드 시작',data:{trimmedKeyPrefix:trimmedKey.substring(0,10)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         console.log('토스페이먼츠 SDK 로드 시작...');
         const tossPayments = await loadTossPayments(trimmedKey);
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:174',message:'SDK 로드 완료',data:{hasWidgets:!!tossPayments.widgets},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         console.log('토스페이먼츠 SDK 로드 완료');
         
         const customerKey = `customer_${Date.now()}`; // 고유 고객 키
         console.log('위젯 인스턴스 생성 중...', { customerKey });
         
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:179',message:'위젯 인스턴스 생성 전',data:{customerKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        
         const widgetsInstance = tossPayments.widgets({
           customerKey,
         });
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:183',message:'위젯 인스턴스 생성 완료',data:{hasSetAmount:!!widgetsInstance.setAmount,hasRenderPaymentMethods:!!widgetsInstance.renderPaymentMethods},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
 
         console.log('결제 금액 설정 중...', { totalAmount });
         // 결제 금액 설정
@@ -187,9 +209,15 @@ export function CheckoutForm({
           value: totalAmount,
         });
 
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:191',message:'위젯 인스턴스 설정 완료 - setWidgets 호출 전',data:{totalAmount},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
         console.log('위젯 인스턴스 설정 완료');
         setWidgets(widgetsInstance);
       } catch (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:193',message:'토스페이먼츠 초기화 에러',data:{errorMessage:error instanceof Error?error.message:String(error),errorName:error instanceof Error?error.name:'Unknown'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         console.error('토스페이먼츠 초기화 오류:', error);
         console.error('에러 상세:', {
           message: error instanceof Error ? error.message : String(error),
@@ -203,7 +231,16 @@ export function CheckoutForm({
 
   // 위젯 렌더링
   useEffect(() => {
-    if (!widgets) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:205',message:'위젯 렌더링 useEffect 시작',data:{hasWidgets:!!widgets},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
+    if (!widgets) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:206',message:'위젯 인스턴스 없음 - 조기 종료',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      return;
+    }
 
     const renderWidgets = async () => {
       try {
@@ -211,11 +248,17 @@ export function CheckoutForm({
         const checkDOM = () => {
           const paymentMethodsEl = document.getElementById('payment-methods');
           const agreementEl = document.getElementById('agreement');
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:212',message:'DOM 요소 확인',data:{hasPaymentMethodsEl:!!paymentMethodsEl,hasAgreementEl:!!agreementEl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
           return paymentMethodsEl && agreementEl;
         };
 
         // DOM이 준비되지 않았다면 잠시 대기
         if (!checkDOM()) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:218',message:'DOM 미준비 - 재시도 예약',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
           setTimeout(() => {
             if (checkDOM()) {
               renderWidgets();
@@ -224,6 +267,9 @@ export function CheckoutForm({
           return;
         }
 
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:225',message:'위젯 렌더링 시작',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         console.log('토스페이먼츠 위젯 렌더링 시작');
 
         // 결제 수단 위젯 렌더링
@@ -232,6 +278,9 @@ export function CheckoutForm({
           variantKey: 'DEFAULT',
         });
 
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:232',message:'결제 수단 위젯 렌더링 완료',data:{selector:'#payment-methods'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         console.log('결제 수단 위젯 렌더링 완료');
 
         // 약관 동의 위젯 렌더링
@@ -240,10 +289,21 @@ export function CheckoutForm({
           variantKey: 'AGREEMENT',
         });
 
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:240',message:'약관 동의 위젯 렌더링 완료',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         console.log('약관 동의 위젯 렌더링 완료');
+
+        // #region agent log
+        const paymentMethodsElAfter = document.getElementById('payment-methods');
+        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:243',message:'렌더링 후 DOM 확인',data:{hasChildren:!!paymentMethodsElAfter?.children.length,childCount:paymentMethodsElAfter?.children.length||0,innerHTMLLength:paymentMethodsElAfter?.innerHTML.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
 
         setIsWidgetReady(true);
       } catch (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:247',message:'위젯 렌더링 에러',data:{errorMessage:error instanceof Error?error.message:String(error),errorName:error instanceof Error?error.name:'Unknown'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         console.error('위젯 렌더링 오류:', error);
         // 사용자에게 에러 표시
         alert('결제 수단을 불러오는 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
@@ -462,7 +522,17 @@ export function CheckoutForm({
               <p>결제 수단을 불러오는 중...</p>
             </div>
           )}
-          <div id="payment-methods" ref={paymentMethodsRef} />
+          <div 
+            id="payment-methods" 
+            ref={(el) => {
+              paymentMethodsRef.current = el;
+              // #region agent log
+              if (el) {
+                fetch('http://127.0.0.1:7242/ingest/27c9eb7f-203a-4e3a-8f91-30721fd798a5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'checkout-form.tsx:465',message:'payment-methods DOM 요소 ref 설정',data:{hasElement:!!el,childrenCount:el.children.length,innerHTMLLength:el.innerHTML.length,computedDisplay:window.getComputedStyle(el).display,computedVisibility:window.getComputedStyle(el).visibility},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+              }
+              // #endregion
+            }} 
+          />
         </div>
 
         {/* 약관 동의 */}

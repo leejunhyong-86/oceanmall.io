@@ -9,6 +9,7 @@
  */
 
 import { createClerkSupabaseClient } from '@/lib/supabase/server';
+import { getPublicSupabaseClient } from '@/lib/supabase/client';
 import { revalidatePath } from 'next/cache';
 import type { Product, ProductWithCategory, ProductFilters, ProductSort, ProductInsert, ProductUpdate } from '@/types';
 
@@ -30,7 +31,8 @@ export async function getProducts(options?: {
     return { products: [], total: 0 };
   }
 
-  const supabase = createClerkSupabaseClient();
+  // 공개 데이터이므로 인증 불필요한 클라이언트 사용 (정적 렌더링 가능)
+  const supabase = getPublicSupabaseClient();
 
   const page = options?.page || 1;
   const pageSize = options?.pageSize || 12;
@@ -124,7 +126,8 @@ export async function getFeaturedProducts(limit = 8): Promise<ProductWithCategor
   }
 
   try {
-    const supabase = createClerkSupabaseClient();
+    // 공개 데이터이므로 인증 불필요한 클라이언트 사용 (정적 렌더링 가능)
+    const supabase = getPublicSupabaseClient();
 
     const { data, error } = await supabase
       .from('products')
@@ -172,7 +175,8 @@ export async function getProductBySlug(slug: string): Promise<ProductWithCategor
     return null;
   }
 
-  const supabase = createClerkSupabaseClient();
+  // 공개 데이터이므로 인증 불필요한 클라이언트 사용 (정적 렌더링 가능)
+  const supabase = getPublicSupabaseClient();
 
   // .maybeSingle() 사용: 결과가 없어도 에러 대신 null 반환
   // decodedSlug를 사용하여 조회
@@ -213,7 +217,8 @@ export async function getProductById(id: string): Promise<ProductWithCategory | 
     return null;
   }
 
-  const supabase = createClerkSupabaseClient();
+  // 공개 데이터이므로 인증 불필요한 클라이언트 사용 (정적 렌더링 가능)
+  const supabase = getPublicSupabaseClient();
 
   const { data, error } = await supabase
     .from('products')
@@ -246,7 +251,8 @@ export async function incrementViewCount(productId: string): Promise<void> {
     return;
   }
 
-  const supabase = createClerkSupabaseClient();
+  // 조회수 증가는 공개 작업이므로 인증 불필요한 클라이언트 사용
+  const supabase = getPublicSupabaseClient();
 
   const { error } = await supabase.rpc('increment_view_count', { product_id: productId });
 
@@ -270,7 +276,8 @@ export async function getNewProducts(limit = 4): Promise<ProductWithCategory[]> 
   }
 
   try {
-    const supabase = createClerkSupabaseClient();
+    // 공개 데이터이므로 인증 불필요한 클라이언트 사용 (정적 렌더링 가능)
+    const supabase = getPublicSupabaseClient();
 
     const { data, error } = await supabase
       .from('products')
@@ -309,12 +316,14 @@ export async function getRelatedProducts(
   categoryId: string | null,
   limit = 4
 ): Promise<Product[]> {
+  // 공개 데이터이므로 인증 불필요한 클라이언트 사용 (정적 렌더링 가능)
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     console.error('Supabase 환경 변수가 설정되지 않았습니다.');
     return [];
   }
 
-  const supabase = createClerkSupabaseClient();
+  // 공개 데이터이므로 인증 불필요한 클라이언트 사용 (정적 렌더링 가능)
+  const supabase = getPublicSupabaseClient();
 
   let query = supabase
     .from('products')

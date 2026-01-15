@@ -15,6 +15,7 @@
  */
 
 import { createClerkSupabaseClient } from '@/lib/supabase/server';
+import { getPublicSupabaseClient } from '@/lib/supabase/client';
 import type { LuckyDrawEvent } from '@/types';
 
 /**
@@ -31,7 +32,8 @@ export async function getActiveLuckyDrawEvent(): Promise<LuckyDrawEvent | null> 
   }
 
   try {
-    const supabase = createClerkSupabaseClient();
+    // 공개 데이터이므로 인증 불필요한 클라이언트 사용 (정적 렌더링 가능)
+    const supabase = getPublicSupabaseClient();
 
     const { data, error } = await supabase
       .from('lucky_draw_events')

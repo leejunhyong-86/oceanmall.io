@@ -97,6 +97,9 @@ node_modules/
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJxxxxx` | Production |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJxxxxx` | Production |
 | `NEXT_PUBLIC_STORAGE_BUCKET` | `uploads` | Production |
+| `NEXT_PUBLIC_TOSS_CLIENT_KEY` | `test_gck_xxxxx` 또는 `live_gck_xxxxx` | Production |
+| `TOSS_SECRET_KEY` | `test_gsk_xxxxx` 또는 `live_gsk_xxxxx` | Production |
+| `TOSS_WEBHOOK_SECRET` | `your_webhook_secret` (선택) | Production |
 
 3. **Environment** 선택:
    - Production: 프로덕션 배포에만 적용
