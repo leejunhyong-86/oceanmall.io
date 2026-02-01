@@ -35,7 +35,18 @@ export function createClerkSupabaseClient() {
 
   return createClient(supabaseUrl, supabaseKey, {
     async accessToken() {
-      return (await auth()).getToken();
+      // 빌드 타임에는 auth()를 호출하지 않음
+      if (typeof window === 'undefined' && !process.env.VERCEL) {
+        return null;
+      }
+
+      try {
+        const token = await auth().getToken();
+        return token;
+      } catch (error) {
+        // 빌드 타임이나 인증 실패 시 null 반환
+        return null;
+      }
     },
   });
 }
