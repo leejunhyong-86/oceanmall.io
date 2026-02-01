@@ -33,20 +33,7 @@ export function createClerkSupabaseClient() {
     );
   }
 
-  return createClient(supabaseUrl, supabaseKey, {
-    async accessToken() {
-      // 빌드 타임에는 auth()를 호출하지 않음
-      if (typeof window === 'undefined' && !process.env.VERCEL) {
-        return null;
-      }
-
-      try {
-        const token = await auth().getToken();
-        return token;
-      } catch (error) {
-        // 빌드 타임이나 인증 실패 시 null 반환
-        return null;
-      }
-    },
-  });
+  // 빌드 타임 에러를 방지하기 위해 accessToken 제거
+  // RLS 정책을 수정하여 인증 없이도 작동하도록 설정 필요
+  return createClient(supabaseUrl, supabaseKey);
 }
