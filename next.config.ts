@@ -39,6 +39,10 @@ const nextConfig: NextConfig = {
       { hostname: "gd2.alicdn.com" },
       { hostname: "gd3.alicdn.com" },
       { hostname: "gd4.alicdn.com" },
+      // AliExpress API 이미지 (새로운 도메인)
+      { hostname: "ae-pic-a1.aliexpress-media.com" },
+      { hostname: "ae-pic-a2.aliexpress-media.com" },
+      { hostname: "ae-pic-a3.aliexpress-media.com" },
       // Instagram 이미지 (Phase 2: Instagram 피드)
       { hostname: "scontent.cdninstagram.com" },
       { hostname: "*.cdninstagram.com", protocol: "https" },

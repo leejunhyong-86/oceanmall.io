@@ -318,8 +318,100 @@
 
 ---
 
+## Phase 13: 알리익스프레스 어필리에이트 API 설정 (Phase 0) ✅
+
+### API 발급 및 설정
+- [x] 알리익스프레스 어필리에이트 프로그램 가입
+- [x] API 키 발급 (App Key, App Secret, Tracking ID)
+- [x] 환경 변수 설정 (.env.local)
+- [x] docs/aliexpress-api-setup.md 가이드 문서 작성
+
+### API 연동 테스트
+- [x] scripts/test-aliexpress-api.ts 테스트 스크립트 작성
+- [x] API 연결 테스트
+- [x] 상품 검색 API 테스트
+- [x] 링크 생성 API 테스트
+
+---
+
+## Phase 14: 대량 링크 생성 기능 (Phase 1) ✅
+
+### 데이터베이스
+- [x] affiliate_products 테이블 마이그레이션
+- [x] affiliate_links 테이블 마이그레이션
+- [x] price_history 테이블 마이그레이션
+
+### API 클라이언트
+- [x] lib/aliexpress/client.ts - API 클라이언트 구현
+- [x] lib/aliexpress/types.ts - TypeScript 타입 정의
+- [x] 상품 검색 함수
+- [x] 어필리에이트 링크 생성 함수
+
+### UI 구현
+- [x] /affiliate/search 상품 검색 페이지
+- [x] /affiliate/bulk-generate 대량 링크 생성 페이지
+- [x] /affiliate/links 링크 관리 페이지
+- [x] components/affiliate/product-search-form.tsx
+- [x] components/affiliate/link-generator.tsx
+
+### 기능 테스트
+- [ ] 상품 검색 기능 테스트 (사용자 테스트 필요)
+- [ ] 대량 링크 생성 (10개 이상) 테스트 (사용자 테스트 필요)
+- [ ] 생성된 링크 클릭 확인 (사용자 테스트 필요)
+
+---
+
+## Phase 15: 자동 포스팅 기능 (Phase 2)
+
+### 소셜 미디어 API 통합
+- [ ] lib/social/instagram.ts - Meta Graph API 클라이언트
+- [ ] lib/social/youtube.ts - YouTube Data API 확장
+- [ ] lib/social/tistory.ts - 티스토리 API 클라이언트
+
+### 스케줄러 시스템
+- [ ] scheduled_posts 테이블 마이그레이션
+- [ ] lib/scheduler/cron.ts - Cron Jobs 설정
+- [ ] /api/cron/auto-post 자동 포스팅 API
+
+### UI 구현
+- [ ] /affiliate/posts 포스팅 관리 페이지
+- [ ] components/affiliate/post-scheduler.tsx
+
+### 기능 테스트
+- [ ] 인스타그램 자동 포스팅 테스트
+- [ ] 유튜브 커뮤니티 포스팅 테스트
+- [ ] 티스토리 블로그 포스팅 테스트
+- [ ] 예약 포스팅 기능 테스트
+
+---
+
+## Phase 16: 실시간 최저가 알림 봇 (Phase 3)
+
+### 가격 모니터링 시스템
+- [ ] alert_subscriptions 테이블 마이그레이션
+- [ ] lib/monitoring/price-tracker.ts - 가격 추적 로직
+- [ ] /api/cron/check-prices - 가격 체크 Cron Job
+
+### 알림 봇 구현
+- [ ] lib/notifications/telegram.ts - Telegram Bot API
+- [ ] lib/notifications/kakao.ts - 카카오톡 비즈니스 API
+- [ ] /api/webhook/telegram - Telegram 웹훅 핸들러
+
+### UI 구현
+- [ ] /affiliate/alerts 알림 설정 페이지
+- [ ] components/affiliate/alert-settings.tsx
+
+### 기능 테스트
+- [ ] 텔레그램 봇 명령어 테스트
+- [ ] 가격 하락 알림 수신 확인
+- [ ] 카카오톡 알림톡 수신 확인
+- [ ] 알림 구독 해지 기능 확인
+
+---
+
 ## 참고 문서
 
 - [PRD](./prd.md) - 제품 요구사항
 - [기획서](./newproject.md) - 상세 기획서
 - [AGENTS.md](../AGENTS.md) - 기술 가이드
+- [알리익스프레스 API 설정 가이드](./aliexpress-api-setup.md) - API 발급 방법
