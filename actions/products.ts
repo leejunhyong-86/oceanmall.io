@@ -295,6 +295,7 @@ export async function getNewProducts(limit = 4): Promise<ProductWithCategory[]> 
         details: error.details,
         hint: error.hint,
         code: error.code,
+        fullError: JSON.stringify(error, null, 2),
       });
       return [];
     }

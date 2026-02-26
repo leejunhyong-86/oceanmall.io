@@ -1,0 +1,37 @@
+name: Daily Affiliate Curation Bot
+
+on:
+  schedule:
+    # 매일 03:00 UTC (한국 시간 12:00 정오)
+    - cron: '0 3 * * *'
+    # 매일 15:00 UTC (한국 시간 00:00 자정)
+    - cron: '0 15 * * *'
+  workflow_dispatch: # 수동 실행 버튼 활성화
+
+jobs:
+  run-curation-script:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Next.js 15 requires Node 18+
+
+      - name: Install Dependencies
+        run: |
+          npm install -g pnpm
+          pnpm install
+
+      - name: Run Curation Worker
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ALIEXPRESS_APP_KEY: ${{ secrets.ALIEXPRESS_APP_KEY }}
+          ALIEXPRESS_APP_SECRET: ${{ secrets.ALIEXPRESS_APP_SECRET }}
+          ALIEXPRESS_TRACKING_ID: ${{ secrets.ALIEXPRESS_TRACKING_ID }}
+          OPENCLAW_WEBHOOK_URL: ${{ secrets.OPENCLAW_WEBHOOK_URL }}
+        run: pnpm tsc scripts/curation-worker.ts --esModuleInterop && node scripts/curation-worker.js
