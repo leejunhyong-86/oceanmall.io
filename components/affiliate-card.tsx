@@ -52,11 +52,11 @@ export function AffiliateCard({ product, link }: AffiliateCardProps) {
                         <div className="flex flex-col">
                             {product.target_original_price > product.target_sale_price && (
                                 <span className="text-xs text-white/70 line-through">
-                                    ${product.target_original_price}
+                                    {product.target_original_price.toLocaleString()}원
                                 </span>
                             )}
                             <span className="text-2xl font-black text-red-400 drop-shadow-sm">
-                                ${product.target_sale_price}
+                                {product.target_sale_price.toLocaleString()}원
                             </span>
                         </div>
 

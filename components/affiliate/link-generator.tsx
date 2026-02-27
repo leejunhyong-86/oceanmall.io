@@ -63,12 +63,12 @@ export default function LinkGenerator({ product, onGenerate }: LinkGeneratorProp
 
                     <div className="flex items-center gap-2 mb-2">
                         <span className="text-lg font-bold text-blue-600">
-                            ${product.target_sale_price}
+                            {product.target_sale_price.toLocaleString()}원
                         </span>
                         {product.discount_rate > 0 && (
                             <>
                                 <span className="text-sm text-gray-400 line-through">
-                                    ${product.target_original_price}
+                                    {product.target_original_price.toLocaleString()}원
                                 </span>
                                 <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">
                                     -{product.discount_rate}%

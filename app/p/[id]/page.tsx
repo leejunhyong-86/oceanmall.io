@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClerkSupabaseClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 
 // 단일 상품 랜딩 페이지 (Meta 광고 유입 타겟)
 export default async function ProductLandingPage({ params }: { params: { id: string } }) {
-    const supabase = createClient();
+    const supabase = createClerkSupabaseClient();
 
     // URL의 마지막 부분이 상품 ID이므로 (e.g. ALI_12345)
     const { data: product } = await supabase
@@ -72,11 +72,11 @@ export default async function ProductLandingPage({ params }: { params: { id: str
                     <div className="mt-8 flex flex-col items-center justify-center space-y-2 text-center">
                         {product.target_original_price > product.target_sale_price && (
                             <p className="text-base text-gray-400 line-through">
-                                정상가 ${product.target_original_price}
+                                정상가 {product.target_original_price.toLocaleString()}원
                             </p>
                         )}
                         <p className="text-5xl font-black text-red-500 drop-shadow-md">
-                            ${product.target_sale_price}
+                            {product.target_sale_price.toLocaleString()}원
                         </p>
 
                         <div className="mt-4 flex flex-wrap justify-center gap-2">

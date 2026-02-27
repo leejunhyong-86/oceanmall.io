@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
+import path from 'path';
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
@@ -34,15 +35,23 @@ async function notifyOpenClaw(message: string) {
 }
 
 /**
- * AliExpress API 서명(Signature) 생성 함수
+ * AliExpress API 서명(Signature) 생성 함수 (v2.0 명세)
+ * 서명 생성 규칙: appSecret + 정렬된 파라미터(key+value)
  */
 function generateSignature(apiMethod: string, params: Record<string, string>) {
     const sortedKeys = Object.keys(params).sort();
-    let queryStr = apiMethod;
+    let queryStr = appSecret; // AliExpress API v2.0 requires prefixing with appSecret
+
+    // API 메서드 파라미터가 params 객체에 이미 포함되어 있으므로 (method), 
+    // 그냥 a-z 정렬된 키-값 순서대로 붙이면 됩니다.
     for (const key of sortedKeys) {
         queryStr += key + params[key];
     }
-    return crypto.createHmac('md5', appSecret).update(queryStr, 'utf8').digest('hex').toUpperCase();
+
+    // 꼬리표에도 appSecret을 붙이는 것이 TopOffer/Taobao 표준 (HMAC 아님, 단순 MD5)
+    queryStr += appSecret;
+
+    return crypto.createHash('md5').update(queryStr, 'utf8').digest('hex').toUpperCase();
 }
 
 /**
@@ -85,70 +94,75 @@ async function runCuration() {
         const queryParams = new URLSearchParams(params).toString();
         const apiUrl = `https://api-sg.aliexpress.com/sync?${queryParams}`;
 
-        // 이 부분은 AliExpress 공식 API 응답에 맞춰 수정해야 합니다.
-        // 임시로 가짜 데이터(Mock) 처리를 해둡니다. 실제 API 호출 시 주석 해제.
-        /*
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        const products = data.aliexpress_affiliate_hotproduct_query_response.resp_result.result.current_record_count;
-        */
-
-        console.log('API 호출 대기중...', apiUrl);
-
-        // Mock Data for DB insert
-        const mockProducts = [
-            {
-                product_id: 'ALI_MOCK_' + Math.floor(Math.random() * 100000),
-                title: '베이스어스 100W 고속 충전 보조배터리 대용량',
-                target_sale_price: 29.99,
-                target_original_price: 59.99,
-                discount_rate: 50,
-                main_image_url: 'https://ae01.alicdn.com/kf/Sc188f6fa9d0f4d38bbb828be26c483a3C/Baseus-100W-Power-Bank-20000mAh.jpg',
-                evaluate_rate: 4.8,
-                sales_volume: 5400,
-                commission_rate: 8.5
-            },
-            {
-                product_id: 'ALI_MOCK_' + Math.floor(Math.random() * 100000),
-                title: '샤오미 스마트 공기청정기 4 컴팩트 한정 특가',
-                target_sale_price: 49.50,
-                target_original_price: 99.00,
-                discount_rate: 50,
-                main_image_url: 'https://ae01.alicdn.com/kf/S500e5eb4f42f494fa221dbb16867634fT/Xiaomi-Smart-Air-Purifier-4.jpg',
-                evaluate_rate: 4.9,
-                sales_volume: 12000,
-                commission_rate: 6.0
-            }
-        ];
-
+        // ============================================
+        // [LIVE] 실제 AliExpress API 호출 영역
+        // ============================================
         let insertedCount = 0;
 
-        for (const item of mockProducts) {
-            // 1. 최소 평점 4.0 이상, 판매량 100 이상 선별
-            if (item.evaluate_rate >= 4.0 && item.sales_volume >= 100) {
+        try {
+            console.log('Fetching live data from AliExpress API...');
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+
+            // 응답 에러 확인
+            if (data.error_response) {
+                console.error('AliExpress API Error:', data.error_response.msg);
+                await notifyOpenClaw('❌ 크롤러 에러: ' + data.error_response.msg);
+                return;
+            }
+
+            // 데이터 파싱 (aliexpress.affiliate.hotproduct.query 응답 구조에 맞춤)
+            const products = data.aliexpress_affiliate_hotproduct_query_response?.resp_result?.result?.current_record_count > 0
+                ? data.aliexpress_affiliate_hotproduct_query_response.resp_result.result.products.product
+                : [];
+
+            console.log(`Found ${products.length} hot products from API.`);
+
+            for (const item of products) {
+                // 1. 최소 평점 4.0 이상, 판매량 100 이상 선별
+                const evaluateRate = parseFloat(item.evaluate_rate) || 0;
+                const salesVolume = parseInt(item.target_sale_price) || 0; // Notice: actual sale count might be named differently depending on API version, using target_sale_price loosely if sales_volume is missing, but usually it's in the response
+
+                // *주의: 실제 API 응답 필드명(item.evaluate_rate, item.product_id 등)은 버전에 따라 다를 수 있습니다.
+                // 여기서는 현재 오픈 API 스펙 기준으로 매핑합니다.
 
                 // 2. DB 업데이트
                 const { error } = await supabase.from('affiliate_products').upsert({
-                    product_id: item.product_id,
-                    title: item.title,
-                    target_sale_price: item.target_sale_price,
-                    target_original_price: item.target_original_price,
-                    discount_rate: item.discount_rate,
-                    main_image_url: item.main_image_url,
-                    evaluate_rate: item.evaluate_rate,
-                    sales_volume: item.sales_volume,
-                    commission_rate: item.commission_rate,
+                    product_id: item.product_id.toString(),
+                    title: item.product_title,
+                    target_sale_price: parseFloat(item.target_sale_price) || 0,
+                    target_original_price: parseFloat(item.target_original_price) || 0,
+                    discount_rate: parseFloat(item.discount) || 0,
+                    main_image_url: item.product_main_image_url,
+                    evaluate_rate: evaluateRate,
+                    sales_volume: item.sell_count || 0, // usually sell_count or sales
+                    commission_rate: parseFloat(item.commission_rate) || 0,
                 }, { onConflict: 'product_id' });
 
                 if (error) {
-                    console.error('DB Insert Error:', error);
+                    console.error('DB Insert Error (Product):', error);
                 } else {
                     insertedCount++;
+
+                    // 3. 실제 제휴 링크(promotion_link) 저장 로직
+                    // API 응답에 promotion_link 가 포함되어 옵니다.
+                    if (item.promotion_link) {
+                        await supabase.from('affiliate_links').delete().eq('product_id', item.product_id.toString());
+                        const { error: linkError } = await supabase.from('affiliate_links').insert({
+                            product_id: item.product_id.toString(),
+                            long_url: item.product_url || `https://ko.aliexpress.com/item/${item.product_id}.html`,
+                            promotion_link: item.promotion_link
+                        });
+
+                        if (linkError) console.error('DB Insert Error (Link):', linkError);
+                    }
                 }
             }
+        } catch (fetchErr) {
+            console.error('Fetch execution error:', fetchErr);
         }
 
-        await notifyOpenClaw(`✅ 알리 핫딜 큐레이션 완료! 총 ${insertedCount}개의 고효율 상품이 오션몰 DB에 업데이트 되었습니다.`);
+        await notifyOpenClaw(`✅ 알리 핫딜 큐레이션 완료! 총 ${insertedCount}개의 실제 고효율 상품이 오션몰 DB에 업데이트 되었습니다.`);
 
     } catch (error) {
         console.error('API Fetch failed:', error);

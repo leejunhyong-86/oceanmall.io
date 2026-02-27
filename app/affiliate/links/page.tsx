@@ -111,11 +111,11 @@ export default async function AffiliateLinksPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-gray-900">
-                                                    ${product.target_sale_price}
+                                                    {product.target_sale_price.toLocaleString()}원
                                                 </div>
                                                 {product.discount_rate && product.discount_rate > 0 && (
                                                     <div className="text-xs text-gray-500 line-through">
-                                                        ${product.target_original_price}
+                                                        {product.target_original_price.toLocaleString()}원
                                                     </div>
                                                 )}
                                             </td>
